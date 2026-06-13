@@ -750,15 +750,40 @@ class StudyMateApp(BaseHTTPRequestHandler):
         self.login_and_redirect(cur.lastrowid, "Hesap oluşturuldu.")
 
     def post_login(self) -> None:
+        ip = self.client_address[0]
+        now = time.time()
+
+        record = _failed_logins.get(ip)
+        if record:
+            if record["locked_until"] and now < record["locked_until"]:
+                raise ValidationError("Çok fazla hatalı deneme. 10 dakika sonra tekrar deneyin.", "/login")
+            if record["locked_until"] and now >= record["locked_until"]:
+                del _failed_logins[ip]
+
         school = self.form.get("school", "")
         email_local = self.form.get("email_local", "")
         email = compose_edu_email(school, email_local, "/login")
         password = self.form.get("password", "")
         with db() as conn:
             user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+            
         if not user or not verify_password(password, user["password_hash"]):
             time.sleep(0.25)
+            
+            if ip not in _failed_logins:
+                _failed_logins[ip] = {"attempts": 1, "locked_until": 0}
+            else:
+                _failed_logins[ip]["attempts"] += 1
+                
+            if _failed_logins[ip]["attempts"] >= 100:
+                _failed_logins[ip]["locked_until"] = now + 600  # 10 minutes (600 seconds)
+                raise ValidationError("Çok fazla hatalı deneme. 10 dakika boyunca engellendiniz.", "/login")
+                
             raise ValidationError("Email veya parola hatalı.", "/login")
+            
+        if ip in _failed_logins:
+            del _failed_logins[ip]
+            
         self.login_and_redirect(user["id"], "Giriş başarılı.")
 
     def post_logout(self) -> None:
@@ -837,6 +862,11 @@ class StudyMateApp(BaseHTTPRequestHandler):
                 "UPDATE users SET school = ?, phone = ?, bio = ?, skills = ? WHERE id = ?",
                 (school, phone, bio, skills, user["id"]),
             )
+        
+        keys_to_remove = [k for k in _match_cache.keys() if k[0] == user["id"]]
+        for k in keys_to_remove:
+            del _match_cache[k]
+            
         self.redirect("/profile", "Profil güncellendi.", "success")
 
     def get_new_post(self) -> None:
@@ -1359,15 +1389,20 @@ def posts_page(
     """
 
 
-DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "sk-cf3cdfb0da4e4ba2b90b1386e87ed7bd")
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
 _match_cache: dict[tuple[int, int], tuple[int, str]] = {}
+_failed_logins: dict[str, dict[str, float | int]] = {}
 
 
 def match_score_basic(user: sqlite3.Row, post: sqlite3.Row) -> tuple[int, str]:
     """Fallback keyword-based scoring."""
     user_words = slug_words(f'{user["skills"]} {user["bio"]}')
-    post_words = slug_words(f'{post["topic"]} {post["description"]} {post["skills"]}')
+    try:
+        post_skills = post["skills"]
+    except (IndexError, KeyError):
+        post_skills = ""
+    post_words = slug_words(f'{post["topic"]} {post["description"]} {post_skills}')
     overlap = user_words & post_words
     base = 45
     score = min(96, base + len(overlap) * 12)
@@ -1380,31 +1415,41 @@ def match_score_basic(user: sqlite3.Row, post: sqlite3.Row) -> tuple[int, str]:
 
 def match_score(user: sqlite3.Row, post: sqlite3.Row) -> tuple[int, str]:
     """DeepSeek AI powered match scoring with in-memory cache."""
+    if not DEEPSEEK_API_KEY:
+        return match_score_basic(user, post)
+
     cache_key = (user["id"], post["id"])
     if cache_key in _match_cache:
         return _match_cache[cache_key]
 
+    if not user['skills'].strip() and not user['bio'].strip():
+        reason = "Öğrenci profili boş olduğu için detaylı değerlendirme yapılamadı."
+        _match_cache[cache_key] = (50, reason)
+        return 50, reason
+
     user_info = f"İsim: {user['name']}, Okul: {user['school']}, İlgi alanları: {user['skills']}, Bio: {user['bio']}"
-    post_info = f"Konu: {post['topic']}, Seviye: {display_label(post['level'])}, Açıklama: {post['description']}, İlan sahibi ilgi alanları: {post.get('skills', '')}"
+    try:
+        post_skills = post["skills"]
+    except (IndexError, KeyError):
+        post_skills = ""
+    post_info = f"Konu: {post['topic']}, Seviye: {display_label(post['level'])}, Açıklama: {post['description']}, İlan sahibi ilgi alanları: {post_skills}"
 
     prompt = (
-        "İki öğrenci arasındaki çalışma uyumluluğunu değerlendir.\n\n"
-        f"Öğrenci profili:\n{user_info}\n\n"
-        f"Çalışma ilanı:\n{post_info}\n\n"
-        "0-100 arası bir uyum skoru ve kısa bir Türkçe açıklama ver.\n"
-        "Yanıtını tam olarak şu formatta ver (başka bir şey yazma):\n"
-        "SKOR: [sayı]\n"
-        "NEDEN: [kısa açıklama]"
+        f"Öğrenci: {user_info}\n"
+        f"İlan: {post_info}\n\n"
+        "Sadece şu formatta yanıt ver:\n"
+        "SKOR: [0-100 arası sayı]\n"
+        "NEDEN: [1 cümlelik kısa açıklama]"
     )
 
     try:
         payload = json.dumps({
             "model": "deepseek-chat",
             "messages": [
-                {"role": "system", "content": "Sen bir eğitim eşleştirme asistanısın. Öğrencilerin ilgi alanları, seviyeleri ve hedeflerine göre uyumluluk skoru ver. Kısa ve öz yanıt ver."},
+                {"role": "system", "content": "Sen bir eşleştirme asistanısın. Kısa ve öz yanıt ver."},
                 {"role": "user", "content": prompt}
             ],
-            "max_tokens": 120,
+            "max_tokens": 60,
             "temperature": 0.3
         }).encode("utf-8")
 
