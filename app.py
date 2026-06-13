@@ -70,25 +70,62 @@ LOCATIONS = [
 LEVELS = ["Beginner", "Intermediate", "Advanced"]
 MODES = ["Yuz yuze", "Online"]
 PLACES = ["Kafe", "Kutuphane", "Kampus", "Online"]
+LABELS = {
+    "Besiktas": "Beşiktaş",
+    "Kadikoy": "Kadıköy",
+    "Sisli": "Şişli",
+    "Bakirkoy": "Bakırköy",
+    "Uskudar": "Üsküdar",
+    "Yuz yuze": "Yüz yüze",
+    "Kutuphane": "Kütüphane",
+    "Kampus": "Kampüs",
+    "Beginner": "Başlangıç",
+    "Intermediate": "Orta",
+    "Advanced": "İleri",
+}
+STATUS_LABELS = {
+    "pending": "Bekliyor",
+    "accepted": "Kabul edildi",
+    "rejected": "Reddedildi",
+}
+SCHOOL_LABEL_REPLACEMENTS = {
+    "Bahcesehir": "Bahçeşehir",
+    "Istanbul": "İstanbul",
+    "Aydin": "Aydın",
+    "Mayis": "Mayıs",
+    "Gelisim": "Gelişim",
+    "Kultur": "Kültür",
+    "Topkapi": "Topkapı",
+    "Haci": "Hacı",
+    "Agri": "Ağrı",
+    "Izzet": "İzzet",
+    "Gul": "Gül",
+    "Turkes": "Türkeş",
+    "Pasa": "Paşa",
+}
 PUBLIC_PLACES = {
-    "Besiktas": "Besiktas ilce kutuphanesi veya kalabalik bir kafe",
-    "Kadikoy": "Kadikoy belediye kutuphanesi veya Moda civari kalabalik bir kafe",
-    "Sisli": "Mecidiyekoy civari halka acik calisma alani",
-    "Bakirkoy": "Bakirkoy halk kutuphanesi veya kalabalik bir kafe",
-    "Uskudar": "Uskudar kutuphanesi veya sahil civari kalabalik bir kafe",
-    "Online": "Online gorusme; kisisel telefon/adres paylasmadan once eslesmeyi netlestirin",
+    "Besiktas": "Beşiktaş ilçe kütüphanesi veya kalabalık bir kafe",
+    "Kadikoy": "Kadıköy belediye kütüphanesi veya Moda civarı kalabalık bir kafe",
+    "Sisli": "Mecidiyeköy civarı halka açık çalışma alanı",
+    "Bakirkoy": "Bakırköy halk kütüphanesi veya kalabalık bir kafe",
+    "Uskudar": "Üsküdar kütüphanesi veya sahil civarı kalabalık bir kafe",
+    "Online": "Online görüşme; kişisel telefon/adres paylaşmadan önce eşleşmeyi netleştirin",
 }
 STOP_WORDS = {
     "ve",
     "ile",
     "bir",
     "icin",
+    "için",
     "ben",
     "sen",
     "bugun",
+    "bugün",
     "saat",
     "calisma",
+    "çalışma",
     "calisiyorum",
+    "çalışıyorum",
     "istiyorum",
     "proje",
     "yapmak",
@@ -104,6 +141,10 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def localnow() -> datetime:
+    return datetime.now().replace(second=0, microsecond=0)
+
+
 def now_iso() -> str:
     return utcnow().isoformat(timespec="seconds")
 
@@ -116,6 +157,33 @@ def escape(value: Any) -> str:
     return html.escape(str(value or ""), quote=True)
 
 
+def display_label(value: str) -> str:
+    return LABELS.get(value, value)
+
+
+def status_label(value: str) -> str:
+    return STATUS_LABELS.get(value, value)
+
+
+def display_school(name: str) -> str:
+    label = name
+    for old, new in SCHOOL_LABEL_REPLACEMENTS.items():
+        label = label.replace(old, new)
+    return label
+
+
+def meta_spans(values: list[str]) -> str:
+    seen: set[str] = set()
+    spans = []
+    for value in values:
+        label = display_label(value)
+        if not label or label in seen:
+            continue
+        seen.add(label)
+        spans.append(f"<span>{escape(label)}</span>")
+    return "".join(spans)
+
+
 def slug_words(text: str) -> set[str]:
     cleaned = []
     for ch in text.lower():
@@ -124,11 +192,16 @@ def slug_words(text: str) -> set[str]:
     return words - STOP_WORDS
 
 
-def normalize_phone(value: str) -> str:
+def normalize_phone(value: str, redirect_to: str, required: bool = False) -> str:
     value = " ".join(value.strip().split())[:32]
+    if required and not value:
+        raise ValidationError("Telefon numarası gerekli.", redirect_to)
     allowed = set("+0123456789 ()-")
     if value and (any(ch not in allowed for ch in value) or sum(ch.isdigit() for ch in value) < 10):
-        raise ValidationError("Telefon numarasi en az 10 rakam icermeli ve sadece +, bosluk, tire, parantez kullanmali.", "/profile")
+        raise ValidationError(
+            "Telefon numarası en az 10 rakam içermeli ve sadece +, boşluk, tire, parantez kullanmalı.",
+            redirect_to,
+        )
     return value
 
 
@@ -150,7 +223,7 @@ UNIVERSITY_BY_NAME = {row["name"]: row for row in UNIVERSITIES}
 def require_university(name: str, redirect_to: str) -> dict[str, str]:
     university = UNIVERSITY_BY_NAME.get(name)
     if not university:
-        raise ValidationError("Listeden gecerli bir universite secmelisin.", redirect_to)
+        raise ValidationError("Listeden geçerli bir üniversite seçmelisin.", redirect_to)
     return university
 
 
@@ -158,29 +231,29 @@ def compose_edu_email(school: str, email_local: str, redirect_to: str) -> str:
     university = require_university(school, redirect_to)
     local = email_local.strip().lower()
     if "@" in local:
-        raise ValidationError("Email alanina sadece @ oncesindeki ogrenci kullanici adini yaz.", redirect_to)
+        raise ValidationError("Email alanına sadece @ öncesindeki öğrenci kullanıcı adını yaz.", redirect_to)
     if not EMAIL_LOCAL_RE.fullmatch(local):
-        raise ValidationError("Edu email kullanici adi sadece harf, rakam, nokta, tire, alt tire, yuzde veya arti icerebilir.", redirect_to)
+        raise ValidationError("Edu email kullanıcı adı sadece harf, rakam, nokta, tire, alt tire, yüzde veya artı içerebilir.", redirect_to)
     return f"{local}@{university['domain']}"
 
 
 def school_options(selected: str = "") -> str:
     options = []
     if selected and selected not in UNIVERSITY_BY_NAME:
-        options.append(f'<option value="{escape(selected)}" selected>{escape(selected)}</option>')
+        options.append(f'<option value="{escape(selected)}" selected>{escape(display_school(selected))}</option>')
     for university in UNIVERSITIES:
         name = university["name"]
         domain = university["domain"]
         is_selected = "selected" if name == selected else ""
         options.append(
-            f'<option value="{escape(name)}" data-domain="{escape(domain)}" {is_selected}>{escape(name)}</option>'
+            f'<option value="{escape(name)}" data-domain="{escape(domain)}" {is_selected}>{escape(display_school(name))}</option>'
         )
     return "".join(options)
 
 
 def option_tags(options: list[str], selected: str = "") -> str:
     return "".join(
-        f'<option value="{escape(item)}" {"selected" if item == selected else ""}>{escape(item)}</option>'
+        f'<option value="{escape(item)}" {"selected" if item == selected else ""}>{escape(display_label(item))}</option>'
         for item in options
     )
 
@@ -188,7 +261,22 @@ def option_tags(options: list[str], selected: str = "") -> str:
 def datetime_local(value: str | None = None) -> str:
     if value:
         return value[:16]
-    return (datetime.now() + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M")
+    return (localnow() + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M")
+
+
+def current_datetime_local() -> str:
+    return localnow().strftime("%Y-%m-%dT%H:%M")
+
+
+def display_date_label(parsed: datetime) -> str:
+    today = localnow().date()
+    if parsed.date() == today:
+        return "Bugün"
+    if parsed.date() == today + timedelta(days=1):
+        return "Yarın"
+    if parsed.date() == today - timedelta(days=1):
+        return "Dün"
+    return parsed.strftime("%d.%m.%Y")
 
 
 def display_datetime(value: str) -> str:
@@ -196,10 +284,17 @@ def display_datetime(value: str) -> str:
         parsed = datetime.fromisoformat(value)
     except ValueError:
         return value.replace("T", " ")
-    return parsed.strftime("%d.%m %H:%M")
+    return f"{display_date_label(parsed)} {parsed:%H:%M}"
 
 
 def display_time_range(start: str, end: str) -> str:
+    try:
+        start_dt = datetime.fromisoformat(start)
+        end_dt = datetime.fromisoformat(end)
+    except ValueError:
+        return f"{display_datetime(start)} - {display_datetime(end)}"
+    if start_dt.date() == end_dt.date():
+        return f"{display_date_label(start_dt)} {start_dt:%H:%M} - {end_dt:%H:%M}"
     return f"{display_datetime(start)} - {display_datetime(end)}"
 
 
@@ -208,11 +303,31 @@ def validate_study_times(start_time: str, end_time: str) -> None:
         start = datetime.fromisoformat(start_time)
         end = datetime.fromisoformat(end_time)
     except ValueError:
-        raise ValidationError("Baslangic ve bitis zamani gecerli olmali.", "/posts/new")
+        raise ValidationError("Başlangıç ve bitiş zamanı geçerli olmalı.", "/posts/new")
     if start >= end:
-        raise ValidationError("Bitis zamani baslangictan sonra olmali.", "/posts/new")
-    if start < datetime.now() - timedelta(minutes=5):
-        raise ValidationError("Gecmis zamanli ilan olusturamazsin.", "/posts/new")
+        raise ValidationError("Bitiş zamanı başlangıçtan sonra olmalı.", "/posts/new")
+    if end <= localnow():
+        raise ValidationError("Bitiş zamanı geçmiş ilan oluşturamazsın.", "/posts/new")
+    if start < localnow() - timedelta(minutes=5):
+        raise ValidationError("Geçmiş zamanlı ilan oluşturamazsın.", "/posts/new")
+
+
+def normalize_study_context(location: str, mode: str, place: str, redirect_to: str) -> tuple[str, str, str]:
+    if location not in LOCATIONS or mode not in MODES or place not in PLACES:
+        raise ValidationError("İlan alanlarını kontrol et.", redirect_to)
+    if mode == "Online":
+        return "Online", mode, "Online"
+    if location == "Online" or place == "Online":
+        raise ValidationError("Yüz yüze ilanlarda fiziksel semt ve yer tercihi seçmelisin.", redirect_to)
+    return location, mode, place
+
+
+def expire_past_posts() -> None:
+    with db() as conn:
+        conn.execute(
+            "UPDATE study_posts SET status = 'expired' WHERE status = 'open' AND end_time <= ?",
+            (current_datetime_local(),),
+        )
 
 
 def get_secret() -> bytes:
@@ -347,6 +462,7 @@ def init_db() -> None:
             );
 
             CREATE INDEX IF NOT EXISTS idx_posts_search ON study_posts(location, topic, level, mode, status);
+            CREATE INDEX IF NOT EXISTS idx_posts_active ON study_posts(status, end_time);
             CREATE INDEX IF NOT EXISTS idx_requests_receiver ON study_requests(receiver_id, status);
             CREATE INDEX IF NOT EXISTS idx_requests_sender ON study_requests(sender_id, status);
             """
@@ -364,6 +480,7 @@ def init_db() -> None:
                 "UPDATE users SET email = ?, school = ? WHERE email = ?",
                 (new_email, new_school, old_email),
             )
+        conn.execute("UPDATE study_posts SET location = 'Online', place_preference = 'Online' WHERE mode = 'Online'")
 
 
 def seed_demo() -> None:
@@ -372,9 +489,9 @@ def seed_demo() -> None:
         if existing:
             return
         users = [
-            ("Ahmet Kaya", "ahmet@bogazici.edu.tr", "Ahmet2026!", "Boğaziçi University", "+90 555 100 10 10", "Backend ogreniyorum.", "Python, Flask, SQL"),
-            ("Ece Demir", "ece@itu.edu.tr", "Ece2026!", "Istanbul Technical University", "+90 555 200 20 20", "API gelistirmek istiyorum.", "Python, Flask, Backend"),
-            ("Mert Yilmaz", "mert@marmara.edu.tr", "Mert2026!", "Marmara University", "+90 555 300 30 30", "Frontend odakliyim.", "React, TypeScript, UI"),
+            ("Ahmet Kaya", "ahmet@bogazici.edu.tr", "Ahmet2026!", "Boğaziçi University", "+90 555 100 10 10", "Backend öğreniyorum.", "Python, Flask, SQL"),
+            ("Ece Demir", "ece@itu.edu.tr", "Ece2026!", "Istanbul Technical University", "+90 555 200 20 20", "API geliştirmek istiyorum.", "Python, Flask, Backend"),
+            ("Mert Yılmaz", "mert@marmara.edu.tr", "Mert2026!", "Marmara University", "+90 555 300 30 30", "Frontend odaklıyım.", "React, TypeScript, UI"),
         ]
         for name, email, password, school, phone, bio, skills in users:
             conn.execute(
@@ -388,11 +505,11 @@ def seed_demo() -> None:
         ece = conn.execute("SELECT id FROM users WHERE email = ?", ("ece@itu.edu.tr",)).fetchone()["id"]
         mert = conn.execute("SELECT id FROM users WHERE email = ?", ("mert@marmara.edu.tr",)).fetchone()["id"]
         start = datetime_local()
-        end = (datetime.now() + timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M")
+        end = (localnow() + timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M")
         posts = [
-            (ahmet, "Python Flask", "Beginner", "Besiktas", "Yuz yuze", "Kutuphane", start, end, "Flask ile guvenli API ve SQLite calismak istiyorum."),
-            (ece, "Backend API", "Intermediate", "Besiktas", "Yuz yuze", "Kafe", start, end, "Python ve Flask uzerinden endpoint tasarimi calisiyorum."),
-            (mert, "React", "Intermediate", "Kadikoy", "Online", "Online", start, end, "React component mimarisi ve state management calisacagim."),
+            (ahmet, "Python Flask", "Beginner", "Besiktas", "Yuz yuze", "Kutuphane", start, end, "Flask ile güvenli API ve SQLite çalışmak istiyorum."),
+            (ece, "Backend API", "Intermediate", "Besiktas", "Yuz yuze", "Kafe", start, end, "Python ve Flask üzerinden endpoint tasarımı çalışıyorum."),
+            (mert, "React", "Intermediate", "Online", "Online", "Online", start, end, "React component mimarisi ve state management çalışacağım."),
         ]
         for post in posts:
             conn.execute(
@@ -426,6 +543,7 @@ class StudyMateApp(BaseHTTPRequestHandler):
             if self.path_only.startswith("/static/"):
                 self.serve_static(self.path_only)
                 return
+            expire_past_posts()
             if method == "POST":
                 self.form = self.read_form()
                 if self.path_only not in {"/login", "/register"}:
@@ -455,13 +573,13 @@ class StudyMateApp(BaseHTTPRequestHandler):
                 }
             handler = routes.get(self.path_only)
             if not handler:
-                self.render("Sayfa bulunamadi", page_not_found(), status=HTTPStatus.NOT_FOUND)
+                self.render("Sayfa bulunamadı", page_not_found(), status=HTTPStatus.NOT_FOUND)
                 return
             handler()
         except CsrfError:
-            self.redirect("/dashboard", "Guvenlik dogrulamasi basarisiz. Lutfen tekrar deneyin.", "error")
+            self.redirect("/dashboard", "Güvenlik doğrulaması başarısız. Lütfen tekrar deneyin.", "error")
         except AuthRequired:
-            self.redirect("/login", "Devam etmek icin giris yapmalisin.", "error")
+            self.redirect("/login", "Devam etmek için giriş yapmalısın.", "error")
         except ValidationError as exc:
             self.redirect(exc.redirect_to, str(exc), "error")
         except Exception as exc:
@@ -609,21 +727,22 @@ class StudyMateApp(BaseHTTPRequestHandler):
         school = self.form.get("school", "")
         email_local = self.form.get("email_local", "")
         email = compose_edu_email(school, email_local, "/register")
+        phone = normalize_phone(self.form.get("phone", ""), "/register", required=True)
         password = self.form.get("password", "")
         if len(name) < 2 or len(password) < 8:
-            raise ValidationError("Isim, universite ve en az 8 karakter parola gerekli.", "/register")
+            raise ValidationError("İsim, üniversite, telefon ve en az 8 karakter parola gerekli.", "/register")
         with db() as conn:
             try:
                 cur = conn.execute(
                     """
-                    INSERT INTO users (name, email, password_hash, school, created_at)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO users (name, email, password_hash, school, phone, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
                     """,
-                    (name, email, hash_password(password), school, now_iso()),
+                    (name, email, hash_password(password), school, phone, now_iso()),
                 )
             except sqlite3.IntegrityError:
-                raise ValidationError("Bu email zaten kayitli.", "/register")
-        self.login_and_redirect(cur.lastrowid, "Hesap olusturuldu.")
+                raise ValidationError("Bu email zaten kayıtlı.", "/register")
+        self.login_and_redirect(cur.lastrowid, "Hesap oluşturuldu.")
 
     def post_login(self) -> None:
         school = self.form.get("school", "")
@@ -634,8 +753,8 @@ class StudyMateApp(BaseHTTPRequestHandler):
             user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
         if not user or not verify_password(password, user["password_hash"]):
             time.sleep(0.25)
-            raise ValidationError("Email veya parola hatali.", "/login")
-        self.login_and_redirect(user["id"], "Giris basarili.")
+            raise ValidationError("Email veya parola hatalı.", "/login")
+        self.login_and_redirect(user["id"], "Giriş başarılı.")
 
     def post_logout(self) -> None:
         if self.session:
@@ -653,36 +772,47 @@ class StudyMateApp(BaseHTTPRequestHandler):
         self.render("StudyMate", home_page())
 
     def get_register(self) -> None:
-        self.render("Kayit ol", auth_page("register"))
+        self.render("Kayıt ol", auth_page("register"))
 
     def get_login(self) -> None:
-        self.render("Giris yap", auth_page("login"))
+        self.render("Giriş yap", auth_page("login"))
 
     def get_dashboard(self) -> None:
         user = self.require_login()
+        cutoff = current_datetime_local()
         with db() as conn:
             open_posts = conn.execute(
-                "SELECT COUNT(*) AS c FROM study_posts WHERE user_id = ? AND status = 'open'",
-                (user["id"],),
+                "SELECT COUNT(*) AS c FROM study_posts WHERE user_id = ? AND status = 'open' AND end_time > ?",
+                (user["id"], cutoff),
             ).fetchone()["c"]
             incoming = conn.execute(
-                "SELECT COUNT(*) AS c FROM study_requests WHERE receiver_id = ? AND status = 'pending'",
-                (user["id"],),
+                """
+                SELECT COUNT(*) AS c
+                FROM study_requests r
+                JOIN study_posts p ON p.id = r.post_id
+                WHERE r.receiver_id = ? AND r.status = 'pending' AND p.status = 'open' AND p.end_time > ?
+                """,
+                (user["id"], cutoff),
             ).fetchone()["c"]
             matches = conn.execute(
-                "SELECT COUNT(*) AS c FROM matches WHERE user1_id = ? OR user2_id = ?",
-                (user["id"], user["id"]),
+                """
+                SELECT COUNT(*) AS c
+                FROM matches m
+                JOIN study_posts p ON p.id = m.post_id
+                WHERE (m.user1_id = ? OR m.user2_id = ?) AND p.end_time > ?
+                """,
+                (user["id"], user["id"], cutoff),
             ).fetchone()["c"]
             latest = conn.execute(
                 """
                 SELECT p.*, u.name, u.school
                 FROM study_posts p
                 JOIN users u ON u.id = p.user_id
-                WHERE p.status = 'open' AND p.user_id != ?
+                WHERE p.status = 'open' AND p.end_time > ? AND p.user_id != ?
                 ORDER BY p.created_at DESC
                 LIMIT 3
                 """,
-                (user["id"],),
+                (cutoff, user["id"]),
             ).fetchall()
         self.render("Dashboard", dashboard_page(user, open_posts, incoming, matches, latest, self.csrf_input()))
 
@@ -696,17 +826,17 @@ class StudyMateApp(BaseHTTPRequestHandler):
         skills = self.form.get("skills", "")[:300]
         school = self.form.get("school", "")[:120]
         require_university(school, "/profile")
-        phone = normalize_phone(self.form.get("phone", ""))
+        phone = normalize_phone(self.form.get("phone", ""), "/profile")
         with db() as conn:
             conn.execute(
                 "UPDATE users SET school = ?, phone = ?, bio = ?, skills = ? WHERE id = ?",
                 (school, phone, bio, skills, user["id"]),
             )
-        self.redirect("/profile", "Profil guncellendi.", "success")
+        self.redirect("/profile", "Profil güncellendi.", "success")
 
     def get_new_post(self) -> None:
         self.require_login()
-        self.render("Ilan olustur", post_form_page(self.csrf_input()))
+        self.render("İlan oluştur", post_form_page(self.csrf_input()))
 
     def post_new_post(self) -> None:
         user = self.require_login()
@@ -718,8 +848,9 @@ class StudyMateApp(BaseHTTPRequestHandler):
         start_time = self.form.get("start_time", "")
         end_time = self.form.get("end_time", "")
         description = self.form.get("description", "")[:700]
-        if not topic or level not in LEVELS or location not in LOCATIONS or mode not in MODES or place not in PLACES:
-            raise ValidationError("Ilan alanlarini kontrol et.", "/posts/new")
+        if not topic or level not in LEVELS:
+            raise ValidationError("İlan alanlarını kontrol et.", "/posts/new")
+        location, mode, place = normalize_study_context(location, mode, place, "/posts/new")
         validate_study_times(start_time, end_time)
         with db() as conn:
             conn.execute(
@@ -730,18 +861,24 @@ class StudyMateApp(BaseHTTPRequestHandler):
                 """,
                 (user["id"], topic, level, location, mode, place, start_time, end_time, description, now_iso()),
             )
-        self.redirect("/posts", "Ilan yayinlandi.", "success")
+        self.redirect("/posts", "İlan yayınlandı.", "success")
 
     def get_posts(self) -> None:
         user = self.require_login()
         filters = {
             "location": self.query.get("location", ""),
-            "topic": self.query.get("topic", ""),
+            "topic": self.query.get("topic", "").strip()[:100],
             "level": self.query.get("level", ""),
             "mode": self.query.get("mode", ""),
         }
-        clauses = ["p.status = 'open'", "p.user_id != ?"]
-        params: list[Any] = [user["id"]]
+        if filters["location"] and filters["location"] not in LOCATIONS:
+            filters["location"] = ""
+        if filters["level"] and filters["level"] not in LEVELS:
+            filters["level"] = ""
+        if filters["mode"] and filters["mode"] not in MODES:
+            filters["mode"] = ""
+        clauses = ["p.status = 'open'", "p.end_time > ?", "p.user_id != ?"]
+        params: list[Any] = [current_datetime_local(), user["id"]]
         if filters["location"]:
             clauses.append("p.location = ?")
             params.append(filters["location"])
@@ -771,25 +908,28 @@ class StudyMateApp(BaseHTTPRequestHandler):
                 (user["id"],),
             ).fetchall()
         request_status = {row["post_id"]: row["status"] for row in request_rows}
-        self.render("Ilanlar", posts_page(user, posts, filters, request_status, self.csrf_input()))
+        self.render("İlanlar", posts_page(user, posts, filters, request_status, self.csrf_input()))
 
     def post_send_request(self) -> None:
         user = self.require_login()
         post_id = int(self.form.get("post_id", "0") or "0")
         message = self.form.get("message", "")[:240]
         with db() as conn:
-            post = conn.execute("SELECT * FROM study_posts WHERE id = ? AND status = 'open'", (post_id,)).fetchone()
+            post = conn.execute(
+                "SELECT * FROM study_posts WHERE id = ? AND status = 'open' AND end_time > ?",
+                (post_id, current_datetime_local()),
+            ).fetchone()
             if not post:
-                raise ValidationError("Ilan bulunamadi.", "/posts")
+                raise ValidationError("İlan bulunamadı veya süresi geçti.", "/posts")
             if post["user_id"] == user["id"]:
-                raise ValidationError("Kendi ilanina istek gonderemezsin.", "/posts")
+                raise ValidationError("Kendi ilanına istek gönderemezsin.", "/posts")
             one_hour_ago = (utcnow() - timedelta(hours=1)).isoformat(timespec="seconds")
             sent_count = conn.execute(
                 "SELECT COUNT(*) AS c FROM study_requests WHERE sender_id = ? AND created_at >= ?",
                 (user["id"], one_hour_ago),
             ).fetchone()["c"]
             if sent_count >= 10:
-                raise ValidationError("Spam korumasi: bir saat icinde en fazla 10 istek gonderebilirsin.", "/posts")
+                raise ValidationError("Spam koruması: bir saat içinde en fazla 10 istek gönderebilirsin.", "/posts")
             duplicate = conn.execute(
                 """
                 SELECT id FROM study_requests
@@ -798,7 +938,7 @@ class StudyMateApp(BaseHTTPRequestHandler):
                 (post_id, user["id"]),
             ).fetchone()
             if duplicate:
-                raise ValidationError("Bu ilana zaten istek gonderdin.", "/posts")
+                raise ValidationError("Bu ilana zaten istek gönderdin.", "/posts")
             conn.execute(
                 """
                 INSERT INTO study_requests (post_id, sender_id, receiver_id, message, status, created_at, updated_at)
@@ -806,10 +946,11 @@ class StudyMateApp(BaseHTTPRequestHandler):
                 """,
                 (post_id, user["id"], post["user_id"], message, now_iso(), now_iso()),
             )
-        self.redirect("/posts", "Istek gonderildi.", "success")
+        self.redirect("/posts", "İstek gönderildi.", "success")
 
     def get_requests(self) -> None:
         user = self.require_login()
+        cutoff = current_datetime_local()
         with db() as conn:
             incoming = conn.execute(
                 """
@@ -817,10 +958,10 @@ class StudyMateApp(BaseHTTPRequestHandler):
                 FROM study_requests r
                 JOIN study_posts p ON p.id = r.post_id
                 JOIN users u ON u.id = r.sender_id
-                WHERE r.receiver_id = ?
+                WHERE r.receiver_id = ? AND p.end_time > ?
                 ORDER BY r.created_at DESC
                 """,
-                (user["id"],),
+                (user["id"], cutoff),
             ).fetchall()
             outgoing = conn.execute(
                 """
@@ -828,23 +969,33 @@ class StudyMateApp(BaseHTTPRequestHandler):
                 FROM study_requests r
                 JOIN study_posts p ON p.id = r.post_id
                 JOIN users u ON u.id = r.receiver_id
-                WHERE r.sender_id = ?
+                WHERE r.sender_id = ? AND p.end_time > ?
                 ORDER BY r.created_at DESC
                 """,
-                (user["id"],),
+                (user["id"], cutoff),
             ).fetchall()
-        self.render("Istekler", requests_page(incoming, outgoing, self.csrf_input()))
+        self.render("İstekler", requests_page(incoming, outgoing, self.csrf_input()))
 
     def post_respond_request(self) -> None:
         user = self.require_login()
         request_id = int(self.form.get("request_id", "0") or "0")
         action = self.form.get("action", "")
         if action not in {"accepted", "rejected"}:
-            raise ValidationError("Gecersiz istek aksiyonu.", "/requests")
+            raise ValidationError("Geçersiz istek aksiyonu.", "/requests")
         with db() as conn:
-            req = conn.execute("SELECT * FROM study_requests WHERE id = ?", (request_id,)).fetchone()
+            req = conn.execute(
+                """
+                SELECT r.*, p.end_time
+                FROM study_requests r
+                JOIN study_posts p ON p.id = r.post_id
+                WHERE r.id = ?
+                """,
+                (request_id,),
+            ).fetchone()
             if not req or req["receiver_id"] != user["id"] or req["status"] != "pending":
-                raise ValidationError("Istek bulunamadi veya zaten yanitlanmis.", "/requests")
+                raise ValidationError("İstek bulunamadı veya zaten yanıtlanmış.", "/requests")
+            if req["end_time"] <= current_datetime_local():
+                raise ValidationError("Süresi geçmiş isteği yanıtlayamazsın.", "/requests")
             conn.execute(
                 "UPDATE study_requests SET status = ?, updated_at = ? WHERE id = ?",
                 (action, now_iso(), request_id),
@@ -857,11 +1008,12 @@ class StudyMateApp(BaseHTTPRequestHandler):
                     """,
                     (request_id, req["post_id"], req["receiver_id"], req["sender_id"], now_iso()),
                 )
-        msg = "Eslesme olustu." if action == "accepted" else "Istek reddedildi."
+        msg = "Eşleşme oluştu." if action == "accepted" else "İstek reddedildi."
         self.redirect("/requests", msg, "success")
 
     def get_matches(self) -> None:
         user = self.require_login()
+        cutoff = current_datetime_local()
         with db() as conn:
             matches = conn.execute(
                 """
@@ -874,23 +1026,23 @@ class StudyMateApp(BaseHTTPRequestHandler):
                 JOIN study_posts p ON p.id = m.post_id
                 JOIN users owner ON owner.id = m.user1_id
                 JOIN users partner ON partner.id = m.user2_id
-                WHERE m.user1_id = ? OR m.user2_id = ?
+                WHERE (m.user1_id = ? OR m.user2_id = ?) AND p.end_time > ?
                 ORDER BY m.created_at DESC
                 """,
-                (user["id"], user["id"], user["id"], user["id"], user["id"]),
+                (user["id"], user["id"], user["id"], user["id"], user["id"], cutoff),
             ).fetchall()
-        self.render("Eslesmeler", matches_page(user, matches, self.csrf_input()))
+        self.render("Eşleşmeler", matches_page(user, matches, self.csrf_input()))
 
     def post_report(self) -> None:
         user = self.require_login()
         reported_user_id = int(self.form.get("reported_user_id", "0") or "0")
         reason = self.form.get("reason", "")[:500]
         if reported_user_id == user["id"] or len(reason) < 5:
-            raise ValidationError("Rapor nedeni en az 5 karakter olmali.", "/matches")
+            raise ValidationError("Rapor nedeni en az 5 karakter olmalı.", "/matches")
         with db() as conn:
             exists = conn.execute("SELECT id FROM users WHERE id = ?", (reported_user_id,)).fetchone()
             if not exists:
-                raise ValidationError("Kullanici bulunamadi.", "/matches")
+                raise ValidationError("Kullanıcı bulunamadı.", "/matches")
             conn.execute(
                 "INSERT INTO reports (reporter_id, reported_user_id, reason, created_at) VALUES (?, ?, ?, ?)",
                 (user["id"], reported_user_id, reason, now_iso()),
@@ -898,7 +1050,7 @@ class StudyMateApp(BaseHTTPRequestHandler):
         self.redirect("/matches", "Rapor kaydedildi.", "success")
 
     def get_security(self) -> None:
-        self.render("Guvenlik", security_page())
+        self.render("Güvenlik", security_page())
 
 
 class AuthRequired(Exception):
@@ -919,16 +1071,16 @@ def layout(title: str, content: str, user: sqlite3.Row | None, flash: str) -> st
     nav = (
         """
         <a href="/dashboard">Panel</a>
-        <a href="/posts">Ilanlar</a>
-        <a href="/requests">Istekler</a>
-        <a href="/matches">Eslesmeler</a>
+        <a href="/posts">İlanlar</a>
+        <a href="/requests">İstekler</a>
+        <a href="/matches">Eşleşmeler</a>
         <a href="/profile">Profil</a>
         """
         if user
         else """
-        <a href="/security">Guvenlik</a>
-        <a class="nav-pill" href="/login">Giris</a>
-        <a class="button small" href="/register">Basla</a>
+        <a href="/security">Güvenlik</a>
+        <a class="nav-pill" href="/login">Giriş</a>
+        <a class="button small" href="/register">Başla</a>
         """
     )
     user_chip = f'<span class="user-chip">{escape(user["name"])}</span>' if user else ""
@@ -942,7 +1094,7 @@ def layout(title: str, content: str, user: sqlite3.Row | None, flash: str) -> st
   <script defer src="/static/app.js"></script>
 </head>
 <body>
-  <a class="skip-link" href="#content">Icerige gec</a>
+  <a class="skip-link" href="#content">İçeriğe geç</a>
   <header class="topbar">
     <a class="brand" href="/" aria-label="StudyMate ana sayfa"><span class="brand-mark">SM</span><span>StudyMate</span></a>
     <nav aria-label="Ana navigasyon">{nav}</nav>
@@ -954,7 +1106,7 @@ def layout(title: str, content: str, user: sqlite3.Row | None, flash: str) -> st
   </main>
   <footer class="site-footer">
     <span>StudyMate MVP</span>
-    <a href="/security">Guvenlik ilkeleri</a>
+    <a href="/security">Güvenlik ilkeleri</a>
   </footer>
 </body>
 </html>"""
@@ -964,17 +1116,17 @@ def home_page() -> str:
     return """
     <section class="hero">
       <div class="hero-copy">
-        <p class="eyebrow">Universite odakli calisma agi</p>
-        <h1>Konu, seviye ve semte gore calisma arkadasi bul.</h1>
-        <p class="lead">StudyMate; edu mail, public bulusma onerisi ve istek onayi ile ogrencileri daha kontrollu bir calisma akisinda eslestirir.</p>
+        <p class="eyebrow">Üniversite odaklı çalışma ağı</p>
+        <h1>Konu, seviye ve semte göre çalışma arkadaşı bul.</h1>
+        <p class="lead">StudyMate; edu mail, güvenli buluşma önerisi ve istek onayı ile öğrencileri daha kontrollü bir çalışma akışında eşleştirir.</p>
         <div class="actions">
-          <a class="button" href="/register">Hemen basla</a>
+          <a class="button" href="/register">Hemen başla</a>
           <a class="ghost" href="/login">Demo hesapla gir</a>
         </div>
-        <div class="trust-row" aria-label="Guven sinyalleri">
-          <span>Edu domain kontrolu</span>
-          <span>CSRF korumasi</span>
-          <span>Telefon gizliligi</span>
+        <div class="trust-row" aria-label="Güven sinyalleri">
+          <span>Edu domain kontrolü</span>
+          <span>CSRF koruması</span>
+          <span>Telefon gizliliği</span>
         </div>
       </div>
       <div class="hero-panel">
@@ -986,27 +1138,27 @@ def home_page() -> str:
             </div>
             <span class="avatar">ED</span>
           </div>
-          <p>Besiktas civarinda Flask endpoint tasarimi calisacak bir partner ariyor.</p>
+          <p>Beşiktaş civarında Flask endpoint tasarımı çalışacak bir partner arıyor.</p>
           <div class="meta">
-            <span>Intermediate</span>
-            <span>Kutuphane</span>
-            <span>Bugun 18:00</span>
+            <span>Orta</span>
+            <span>Kütüphane</span>
+            <span>Bugün 18:00</span>
           </div>
           <div class="safe-box">
-            Kabulden once telefon ve tam adres gizli kalir. Eslesme olunca public yer onerisi acilir.
+            Kabulden önce telefon ve tam adres gizli kalır. Eşleşme olunca güvenli yer önerisi açılır.
           </div>
         </div>
       </div>
     </section>
     <section class="stats landing-stats">
-      <article><strong>3 adim</strong><span>Ilan ac, istek al, esles</span></article>
+      <article><strong>3 adım</strong><span>İlan aç, istek al, eşleş</span></article>
       <article><strong>10/saat</strong><span>Spam limiti</span></article>
       <article><strong>edu</strong><span>Okul domaini zorunlu</span></article>
     </section>
     <section class="features">
-      <article><span class="feature-icon">01</span><h3>Hedef odakli</h3><p>Swipe yerine konu, seviye, zaman ve semt bazli calisma ilanlari var.</p></article>
-      <article><span class="feature-icon">02</span><h3>Kontrollu</h3><p>Istek kabul edilmeden telefon gosterilmez; ilk bulusma icin public yer onerilir.</p></article>
-      <article><span class="feature-icon">03</span><h3>Yayina hazir MVP</h3><p>Kayit, giris, ilan, istek, eslesme, rapor ve temel guvenlik akislarini kapsar.</p></article>
+      <article><span class="feature-icon">01</span><h3>Hedef odaklı</h3><p>Swipe yerine konu, seviye, zaman ve semt bazlı çalışma ilanları var.</p></article>
+      <article><span class="feature-icon">02</span><h3>Kontrollü</h3><p>İstek kabul edilmeden telefon gösterilmez; ilk buluşma için güvenli yer önerilir.</p></article>
+      <article><span class="feature-icon">03</span><h3>Yayına hazır MVP</h3><p>Kayıt, giriş, ilan, istek, eşleşme, rapor ve temel güvenlik akışlarını kapsar.</p></article>
     </section>
     """
 
@@ -1014,12 +1166,16 @@ def home_page() -> str:
 def auth_page(mode: str) -> str:
     is_register = mode == "register"
     action = "/register" if is_register else "/login"
-    title = "Hesap olustur" if is_register else "Giris yap"
+    title = "Hesap oluştur" if is_register else "Giriş yap"
     extra = (
         """
-        <label>Isim
+        <label>İsim
           <input name="name" required minlength="2" autocomplete="name">
         </label>
+        <label>Telefon
+          <input name="phone" required inputmode="tel" autocomplete="tel" placeholder="+90 555 123 45 67">
+        </label>
+        <p class="hint">Telefonun yalnızca kabul edilmiş eşleşmelerde gösterilir.</p>
         """
         if is_register
         else ""
@@ -1029,12 +1185,12 @@ def auth_page(mode: str) -> str:
     helper = (
         '<p class="form-intro">Demo hesap: ahmet @bogazici.edu.tr / Ahmet2026! veya ece @itu.edu.tr / Ece2026!</p>'
         if not is_register
-        else '<p class="form-intro">Universiteni sec, sadece @ oncesindeki ogrenci mail adini yaz. Domain okuldan otomatik gelir.</p>'
+        else '<p class="form-intro">Üniversiteni seç, sadece @ öncesindeki öğrenci mail adını yaz. Domain okuldan otomatik gelir.</p>'
     )
     alternate = (
-        '<p class="auth-switch">Hesabin var mi? <a href="/login">Giris yap</a></p>'
+        '<p class="auth-switch">Hesabın var mı? <a href="/login">Giriş yap</a></p>'
         if is_register
-        else '<p class="auth-switch">Hesabin yok mu? <a href="/register">Kayit ol</a></p>'
+        else '<p class="auth-switch">Hesabın yok mu? <a href="/register">Kayıt ol</a></p>'
     )
     password_autocomplete = "new-password" if is_register else "current-password"
     return f"""
@@ -1043,14 +1199,14 @@ def auth_page(mode: str) -> str:
       {helper}
       <form method="post" action="{action}" class="stack">
         {extra}
-        <label>Universite
+        <label>Üniversite
           <select name="school" class="js-school-select" data-domain-target="email-domain" required>
             {school_options(default_school)}
           </select>
         </label>
         <label>Edu mail
           <span class="email-composer">
-            <input name="email_local" required autocomplete="username" placeholder="ogrenci.no veya ad.soyad" pattern="[A-Za-z0-9._%+\\-]{{1,64}}">
+            <input name="email_local" required autocomplete="username" placeholder="öğrenci.no veya ad.soyad" pattern="[A-Za-z0-9._%+\\-]{{1,64}}">
             <span class="email-domain">@<span id="email-domain">{escape(default_domain)}</span></span>
           </span>
         </label>
@@ -1070,26 +1226,26 @@ def dashboard_page(user: sqlite3.Row, open_posts: int, incoming: int, matches: i
     <section class="page-head">
       <div>
         <p class="eyebrow">Merhaba {escape(user["name"])}</p>
-        <h1>Bugunku calisma panelin</h1>
+        <h1>Bugünkü çalışma panelin</h1>
       </div>
-      <form method="post" action="/logout">{csrf}<button class="ghost danger" type="submit">Cikis</button></form>
+      <form method="post" action="/logout">{csrf}<button class="ghost danger" type="submit">Çıkış</button></form>
     </section>
     <section class="stats">
-      <article><strong>{open_posts}</strong><span>Acik ilanin</span></article>
+      <article><strong>{open_posts}</strong><span>Açık ilanın</span></article>
       <article><strong>{incoming}</strong><span>Bekleyen istek</span></article>
-      <article><strong>{matches}</strong><span>Aktif eslesme</span></article>
+      <article><strong>{matches}</strong><span>Aktif eşleşme</span></article>
     </section>
     <section class="quick-actions">
-      <a class="button" href="/posts/new">Calisma ilani olustur</a>
-      <a class="ghost" href="/posts">Yakindaki ilanlari gor</a>
+      <a class="button" href="/posts/new">Çalışma ilanı oluştur</a>
+      <a class="ghost" href="/posts">Yakındaki ilanları gör</a>
     </section>
     <section>
       <div class="section-title">
         <div>
-          <p class="eyebrow">Kesfet</p>
+          <p class="eyebrow">Keşfet</p>
           <h2>Son ilanlar</h2>
         </div>
-        <a class="text-link" href="/posts">Tumunu gor</a>
+        <a class="text-link" href="/posts">Tümünü gör</a>
       </div>
       <div class="grid">{cards}</div>
     </section>
@@ -1100,10 +1256,10 @@ def profile_page(user: sqlite3.Row, csrf: str) -> str:
     return f"""
     <section class="form-wrap">
       <h1>Profil</h1>
-      <p class="form-intro">Eslesme kalitesini artirmak icin calistigin teknolojileri ve kisa hedefini ekle.</p>
+      <p class="form-intro">Eşleşme kalitesini artırmak için çalıştığın teknolojileri ve kısa hedefini ekle.</p>
       <form method="post" action="/profile" class="stack">
         {csrf}
-        <label>Universite
+        <label>Üniversite
           <select name="school" required>
             {school_options(user["school"])}
           </select>
@@ -1111,12 +1267,12 @@ def profile_page(user: sqlite3.Row, csrf: str) -> str:
         <label>Telefon
           <input name="phone" value="{escape(user["phone"])}" inputmode="tel" autocomplete="tel" placeholder="+90 555 123 45 67">
         </label>
-        <p class="hint">Telefon numaran sadece eslesme kabul edildikten sonra karsi tarafa gosterilir.</p>
-        <label>Ilgi alanlari
+        <p class="hint">Telefon numaran sadece eşleşme kabul edildikten sonra karşı tarafa gösterilir.</p>
+        <label>İlgi alanları
           <input name="skills" value="{escape(user["skills"])}" maxlength="300" placeholder="Python, Flask, SQL">
         </label>
         <label>Bio
-          <textarea name="bio" rows="5" maxlength="500" placeholder="Ne calisiyorsun?">{escape(user["bio"])}</textarea>
+          <textarea name="bio" rows="5" maxlength="500" placeholder="Ne çalışıyorsun?">{escape(user["bio"])}</textarea>
         </label>
         <button class="button" type="submit">Kaydet</button>
       </form>
@@ -1126,12 +1282,12 @@ def profile_page(user: sqlite3.Row, csrf: str) -> str:
 
 def post_form_page(csrf: str) -> str:
     start = datetime_local()
-    end = (datetime.now() + timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M")
+    end = (localnow() + timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M")
     return f"""
     <section class="form-wrap">
-      <h1>Calisma ilani olustur</h1>
-      <p class="form-intro">Konu ve zaman bilgisini net yaz; sistem benzer ilgi alanlarini yakalayip match skorunu hesaplar.</p>
-      <form method="post" action="/posts/new" class="stack">
+      <h1>Çalışma ilanı oluştur</h1>
+      <p class="form-intro">Konu ve zaman bilgisini net yaz; sistem benzer ilgi alanlarını yakalayıp match skorunu hesaplar.</p>
+      <form method="post" action="/posts/new" class="stack js-post-form">
         {csrf}
         <label>Konu
           <input name="topic" required maxlength="100" placeholder="Python Flask">
@@ -1145,7 +1301,7 @@ def post_form_page(csrf: str) -> str:
           </label>
         </div>
         <div class="two-col">
-          <label>Calisma tipi
+          <label>Çalışma tipi
             <select name="mode">{option_tags(MODES)}</select>
           </label>
           <label>Yer tercihi
@@ -1153,17 +1309,17 @@ def post_form_page(csrf: str) -> str:
           </label>
         </div>
         <div class="two-col">
-          <label>Baslangic
+          <label>Başlangıç
             <input type="datetime-local" name="start_time" value="{start}" required>
           </label>
-          <label>Bitis
+          <label>Bitiş
             <input type="datetime-local" name="end_time" value="{end}" required>
           </label>
         </div>
-        <label>Aciklama
-          <textarea name="description" rows="5" maxlength="700" placeholder="Flask ogreniyorum, beraber mini API yapmak istiyorum."></textarea>
+        <label>Açıklama
+          <textarea name="description" rows="5" maxlength="700" placeholder="Flask öğreniyorum, beraber mini API yapmak istiyorum."></textarea>
         </label>
-        <button class="button" type="submit">Yayinla</button>
+        <button class="button" type="submit">Yayınla</button>
       </form>
     </section>
     """
@@ -1178,20 +1334,20 @@ def posts_page(
 ) -> str:
     post_cards = "".join(post_card(user, row, request_status.get(row["id"]), csrf) for row in posts)
     if not post_cards:
-        post_cards = '<p class="empty">Filtrelere uyan ilan yok. Yeni ilan acarak talep olusturabilirsin.</p>'
+        post_cards = '<p class="empty">Filtrelere uyan aktif ilan yok. Yeni ilan açarak talep oluşturabilirsin.</p>'
     return f"""
     <section class="page-head">
       <div>
-        <p class="eyebrow">Semt bazli eslesme</p>
-        <h1>Yakindaki ilanlar</h1>
+        <p class="eyebrow">Semt bazlı eşleşme</p>
+        <h1>Yakındaki ilanlar</h1>
       </div>
       <a class="button" href="/posts/new">Yeni ilan</a>
     </section>
     <form method="get" action="/posts" class="filters">
       <input name="topic" value="{escape(filters["topic"])}" placeholder="Konu ara">
-      <select name="location"><option value="">Tum konumlar</option>{option_tags(LOCATIONS, filters["location"])}</select>
-      <select name="level"><option value="">Tum seviyeler</option>{option_tags(LEVELS, filters["level"])}</select>
-      <select name="mode"><option value="">Tum tipler</option>{option_tags(MODES, filters["mode"])}</select>
+      <select name="location"><option value="">Tüm konumlar</option>{option_tags(LOCATIONS, filters["location"])}</select>
+      <select name="level"><option value="">Tüm seviyeler</option>{option_tags(LEVELS, filters["level"])}</select>
+      <select name="mode"><option value="">Tüm tipler</option>{option_tags(MODES, filters["mode"])}</select>
       <button class="ghost" type="submit">Filtrele</button>
     </form>
     <section class="grid">{post_cards}</section>
@@ -1207,41 +1363,42 @@ def match_score(user: sqlite3.Row, post: sqlite3.Row) -> tuple[int, str]:
     if overlap:
         reason = "Ortak anahtar kelimeler: " + ", ".join(sorted(overlap)[:4])
     else:
-        reason = "Konu ve zaman bilgisi uzerinden temel uygunluk."
+        reason = "Konu ve zaman bilgisi üzerinden temel uygunluk."
     return score, reason
 
 
 def post_card(user: sqlite3.Row, post: sqlite3.Row, status: str | None, csrf: str) -> str:
     score, reason = match_score(user, post)
     request_area = (
-        f'<span class="status">Istek durumu: {escape(status)}</span>'
+        f'<span class="status {escape(status or "")}">İstek durumu: {escape(status_label(status or ""))}</span>'
         if status
         else f"""
         <form method="post" action="/requests/send" class="inline-form">
           {csrf}
           <input type="hidden" name="post_id" value="{post["id"]}">
-          <input name="message" maxlength="240" placeholder="Kisa mesaj (opsiyonel)">
-          <button class="button small" type="submit">Istek gonder</button>
+          <input name="message" maxlength="240" placeholder="Kısa mesaj (opsiyonel)">
+          <button class="button small" type="submit">İstek gönder</button>
         </form>
         """
     )
+    meta = meta_spans([
+        post["location"],
+        post["mode"],
+        post["place_preference"],
+        display_time_range(post["start_time"], post["end_time"]),
+    ])
     return f"""
     <article class="card">
       <div class="card-top">
         <div>
-          <p class="card-kicker">{escape(post["name"])} - {escape(post["school"])}</p>
+          <p class="card-kicker">{escape(post["name"])} - {escape(display_school(post["school"]))}</p>
           <h3>{escape(post["topic"])}</h3>
         </div>
         <span class="badge">AI {score}%</span>
       </div>
-      <p><strong>{escape(post["level"])}</strong> seviye icin calisma daveti.</p>
+      <p><strong>{escape(display_label(post["level"]))}</strong> seviye için çalışma daveti.</p>
       <p>{escape(post["description"])}</p>
-      <div class="meta">
-        <span>{escape(post["location"])}</span>
-        <span>{escape(post["mode"])}</span>
-        <span>{escape(post["place_preference"])}</span>
-        <span>{escape(display_time_range(post["start_time"], post["end_time"]))}</span>
-      </div>
+      <div class="meta">{meta}</div>
       <p class="hint">{escape(reason)}</p>
       {request_area}
     </article>
@@ -1251,9 +1408,9 @@ def post_card(user: sqlite3.Row, post: sqlite3.Row, status: str | None, csrf: st
 def compact_post_card(post: sqlite3.Row) -> str:
     return f"""
     <article class="card compact">
-      <p class="card-kicker">{escape(post["name"])} - {escape(post["school"])}</p>
+      <p class="card-kicker">{escape(post["name"])} - {escape(display_school(post["school"]))}</p>
       <h3>{escape(post["topic"])}</h3>
-      <p>{escape(post["location"])} / {escape(display_time_range(post["start_time"], post["end_time"]))}</p>
+      <p>{escape(display_label(post["location"]))} / {escape(display_time_range(post["start_time"], post["end_time"]))}</p>
     </article>
     """
 
@@ -1264,21 +1421,21 @@ def requests_page(incoming: list[sqlite3.Row], outgoing: list[sqlite3.Row], csrf
         f"""
         <article class="card compact">
           <h3>{escape(row["receiver_name"])}</h3>
-          <p>{escape(row["topic"])} - {escape(row["location"])}</p>
+          <p>{escape(row["topic"])} - {escape(display_label(row["location"]))}</p>
           <p class="muted">{escape(display_time_range(row["start_time"], row["end_time"]))}</p>
-          <span class="status {escape(row["status"])}">{escape(row["status"])}</span>
+          <span class="status {escape(row["status"])}">{escape(status_label(row["status"]))}</span>
         </article>
         """
         for row in outgoing
-    ) or '<p class="empty">Gonderdigin istek yok.</p>'
+    ) or '<p class="empty">Gönderdiğin istek yok.</p>'
     return f"""
-    <section class="page-head"><h1>Istekler</h1></section>
+    <section class="page-head"><h1>İstekler</h1></section>
     <section>
       <h2>Gelen istekler</h2>
       <div class="grid">{incoming_html}</div>
     </section>
     <section>
-      <h2>Gonderilen istekler</h2>
+      <h2>Gönderilen istekler</h2>
       <div class="grid">{outgoing_html}</div>
     </section>
     """
@@ -1296,48 +1453,54 @@ def incoming_request_card(row: sqlite3.Row, csrf: str) -> str:
         </form>
         """
     else:
-        controls = f'<span class="status {escape(row["status"])}">{escape(row["status"])}</span>'
+        controls = f'<span class="status {escape(row["status"])}">{escape(status_label(row["status"]))}</span>'
+    meta = meta_spans([row["location"], display_time_range(row["start_time"], row["end_time"])])
     return f"""
     <article class="card">
       <h3>{escape(row["sender_name"])}</h3>
-      <p class="muted">{escape(row["school"])} - {escape(row["skills"])}</p>
-      <p>{escape(row["topic"])} ilani icin katilmak istiyor.</p>
+      <p class="muted">{escape(display_school(row["school"]))} - {escape(row["skills"])}</p>
+      <p>{escape(row["topic"])} ilanı için katılmak istiyor.</p>
       <p class="hint">{escape(row["message"])}</p>
-      <div class="meta"><span>{escape(row["location"])}</span><span>{escape(display_time_range(row["start_time"], row["end_time"]))}</span></div>
+      <div class="meta">{meta}</div>
       {controls}
     </article>
     """
 
 
 def matches_page(user: sqlite3.Row, matches: list[sqlite3.Row], csrf: str) -> str:
-    cards = "".join(match_card(user, row, csrf) for row in matches) or '<p class="empty">Henuz eslesme yok.</p>'
+    cards = "".join(match_card(user, row, csrf) for row in matches) or '<p class="empty">Henüz eşleşme yok.</p>'
     return f"""
-    <section class="page-head"><h1>Eslesmeler</h1></section>
+    <section class="page-head"><h1>Eşleşmeler</h1></section>
     <div class="safety-note">
-      Tam adres paylasma. Ilk bulusma icin kalabalik ve public alan sec. Sorunlu davranisi raporla.
+      Tam adres paylaşma. İlk buluşma için kalabalık ve güvenli alan seç. Sorunlu davranışı raporla.
     </div>
     <section class="grid">{cards}</section>
     """
 
 
 def match_card(user: sqlite3.Row, row: sqlite3.Row, csrf: str) -> str:
-    suggestion = PUBLIC_PLACES.get(row["location"], "Kalabalik ve public bir alan")
-    phone = row["other_phone"] or "Telefon girilmemis"
+    suggestion = PUBLIC_PLACES.get(row["location"], "Kalabalık ve güvenli bir alan")
+    phone = row["other_phone"] or "Telefon girilmemiş"
+    meta = meta_spans([
+        row["mode"],
+        row["place_preference"],
+        display_time_range(row["start_time"], row["end_time"]),
+    ])
     return f"""
     <article class="card">
-      <span class="badge">Eslesme tamam</span>
+      <span class="badge">Eşleşme tamam</span>
       <h3>{escape(row["other_name"])}</h3>
-      <p><strong>{escape(row["topic"])}</strong> - {escape(row["location"])}</p>
-      <div class="meta"><span>{escape(row["mode"])}</span><span>{escape(row["place_preference"])}</span><span>{escape(display_time_range(row["start_time"], row["end_time"]))}</span></div>
+      <p><strong>{escape(row["topic"])}</strong> - {escape(display_label(row["location"]))}</p>
+      <div class="meta">{meta}</div>
       <p class="contact-line"><strong>Telefon:</strong> {escape(phone)}</p>
-      <p class="hint">Onerilen guvenli yer: {escape(suggestion)}</p>
+      <p class="hint">Önerilen güvenli yer: {escape(suggestion)}</p>
       <details>
         <summary>Raporla</summary>
         <form method="post" action="/reports" class="stack mini">
           {csrf}
           <input type="hidden" name="reported_user_id" value="{row["other_id"]}">
-          <textarea name="reason" rows="3" required placeholder="Kisa neden"></textarea>
-          <button class="ghost danger small" type="submit">Rapor gonder</button>
+          <textarea name="reason" rows="3" required placeholder="Kısa neden"></textarea>
+          <button class="ghost danger small" type="submit">Rapor gönder</button>
         </form>
       </details>
     </article>
@@ -1347,16 +1510,16 @@ def match_card(user: sqlite3.Row, row: sqlite3.Row, csrf: str) -> str:
 def security_page() -> str:
     return """
     <section class="form-wrap">
-      <h1>Guvenlik ve gizlilik</h1>
+      <h1>Güvenlik ve gizlilik</h1>
       <ul class="checklist">
-        <li>Parolalar PBKDF2-SHA256, kullaniciya ozel salt ve 310.000 iterasyon ile hashlenir.</li>
-        <li>Kullanici okulunu Turkiye universite listesinden secer; email domain'i okul domain'iyle zorunlu eslesir.</li>
-        <li>Session tokenlari cookie'de random token olarak durur; veritabaninda sadece SHA-256 hash saklanir.</li>
-        <li>POST formlarinda CSRF token kontrolu vardir.</li>
-        <li>Tam adres tutulmaz; sadece semt veya Online secenegi kullanilir.</li>
-        <li>Telefon numarasi ilan ve isteklerde gizlidir; sadece kabul edilen eslesmelerde iki tarafa acilir.</li>
-        <li>Istek gonderme saatlik limite tabidir ve ayni ilana tekrar istek engellenir.</li>
-        <li>Eslesme sonrasi public place onerisi ve raporlama akisi vardir.</li>
+        <li>Parolalar PBKDF2-SHA256, kullanıcıya özel salt ve 310.000 iterasyon ile hashlenir.</li>
+        <li>Kullanıcı okulunu Türkiye üniversite listesinden seçer; email domain'i okul domain'iyle zorunlu eşleşir.</li>
+        <li>Session tokenları cookie'de random token olarak durur; veritabanında sadece SHA-256 hash saklanır.</li>
+        <li>POST formlarında CSRF token kontrolü vardır.</li>
+        <li>Tam adres tutulmaz; sadece semt veya Online seçeneği kullanılır.</li>
+        <li>Telefon numarası ilan ve isteklerde gizlidir; sadece kabul edilen eşleşmelerde iki tarafa açılır.</li>
+        <li>İstek gönderme saatlik limite tabidir ve aynı ilana tekrar istek engellenir.</li>
+        <li>Eşleşme sonrası güvenli yer önerisi ve raporlama akışı vardır.</li>
       </ul>
     </section>
     """
@@ -1371,7 +1534,7 @@ def error_page(exc: Exception) -> str:
     <section class="form-wrap">
       <h1>Beklenmeyen hata</h1>
       <p class="muted">{escape(exc)}</p>
-      <a class="button" href="/dashboard">Panele don</a>
+      <a class="button" href="/dashboard">Panele dön</a>
     </section>
     """
 

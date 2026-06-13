@@ -21,6 +21,47 @@ function bindEmailDomainSelect(select) {
 
 document.querySelectorAll(".js-school-select").forEach(bindEmailDomainSelect);
 
+function bindPostModeControls(form) {
+  const mode = form.querySelector("select[name='mode']");
+  const location = form.querySelector("select[name='location']");
+  const place = form.querySelector("select[name='place_preference']");
+  if (!mode || !location || !place) {
+    return;
+  }
+
+  const firstEnabledValue = (select) => {
+    const option = Array.from(select.options).find((item) => !item.disabled);
+    return option ? option.value : "";
+  };
+
+  const sync = () => {
+    const isOnline = mode.value === "Online";
+    [location, place].forEach((select) => {
+      Array.from(select.options).forEach((option) => {
+        option.disabled = isOnline ? option.value !== "Online" : option.value === "Online";
+      });
+    });
+
+    if (isOnline) {
+      location.value = "Online";
+      place.value = "Online";
+      return;
+    }
+
+    if (location.value === "Online") {
+      location.value = firstEnabledValue(location);
+    }
+    if (place.value === "Online") {
+      place.value = firstEnabledValue(place);
+    }
+  };
+
+  mode.addEventListener("change", sync);
+  sync();
+}
+
+document.querySelectorAll(".js-post-form").forEach(bindPostModeControls);
+
 function markActiveNavigation() {
   const currentPath = window.location.pathname === "/" ? "/" : window.location.pathname.replace(/\/$/, "");
   document.querySelectorAll("nav a[href]").forEach((link) => {
@@ -66,7 +107,7 @@ function bindSubmitState() {
         return;
       }
       button.dataset.originalLabel = button.textContent;
-      button.textContent = "Isleniyor...";
+      button.textContent = "İşleniyor...";
       button.disabled = true;
     });
   });
