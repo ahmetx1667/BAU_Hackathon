@@ -1,0 +1,754 @@
+[
+  {
+    "name": "Abant Izzet Baysal University",
+    "domain": "ibu.edu.tr"
+  },
+  {
+    "name": "Abdullah Gul University",
+    "domain": "agu.edu.tr"
+  },
+  {
+    "name": "Acibadem University",
+    "domain": "acibadem.edu.tr"
+  },
+  {
+    "name": "Adana Alparslan Turkes University",
+    "domain": "atu.edu.tr"
+  },
+  {
+    "name": "Adana Science and Technology University",
+    "domain": "adanabtu.edu.tr"
+  },
+  {
+    "name": "Adiyaman University",
+    "domain": "adiyaman.edu.tr"
+  },
+  {
+    "name": "Adnan Menderes University",
+    "domain": "adu.edu.tr"
+  },
+  {
+    "name": "Afyon Kocatepe University",
+    "domain": "aku.edu.tr"
+  },
+  {
+    "name": "Agri Ibrahim Cecen University",
+    "domain": "agri.edu.tr"
+  },
+  {
+    "name": "Ahi Evran University",
+    "domain": "ahievran.edu.tr"
+  },
+  {
+    "name": "Air Force Academy",
+    "domain": "hho.edu.tr"
+  },
+  {
+    "name": "Akdeniz University",
+    "domain": "akdeniz.edu.tr"
+  },
+  {
+    "name": "Aksaray University",
+    "domain": "aksaray.edu.tr"
+  },
+  {
+    "name": "Alanya Alaaddin Keykubat University",
+    "domain": "alanyaaku.edu.tr"
+  },
+  {
+    "name": "Alanya Hamdullah Emin Pasa University",
+    "domain": "ahap.edu.tr"
+  },
+  {
+    "name": "Amasya University",
+    "domain": "amasya.edu.tr"
+  },
+  {
+    "name": "Anadolu University",
+    "domain": "anadolu.edu.tr"
+  },
+  {
+    "name": "Ankara Haci Bayram Veli University",
+    "domain": "hbv.edu.tr"
+  },
+  {
+    "name": "Ankara Medipol University",
+    "domain": "ankaramedipol.edu.tr"
+  },
+  {
+    "name": "Ankara Science University",
+    "domain": "ankarabilim.edu.tr"
+  },
+  {
+    "name": "Ankara Social Science University",
+    "domain": "asbu.edu.tr"
+  },
+  {
+    "name": "Ankara University",
+    "domain": "ankara.edu.tr"
+  },
+  {
+    "name": "Ankara Yildirim Beyazit University",
+    "domain": "aybu.edu.tr"
+  },
+  {
+    "name": "Antalya Bilim University",
+    "domain": "antalya.edu.tr"
+  },
+  {
+    "name": "Ardahan University",
+    "domain": "ardahan.edu.tr"
+  },
+  {
+    "name": "Artvin Coruh University",
+    "domain": "artvin.edu.tr"
+  },
+  {
+    "name": "Atatürk University",
+    "domain": "atauni.edu.tr"
+  },
+  {
+    "name": "Atilim University",
+    "domain": "atilim.edu.tr"
+  },
+  {
+    "name": "Avrasya University",
+    "domain": "avrasya.edu.tr"
+  },
+  {
+    "name": "Bahcesehir University",
+    "domain": "bahcesehir.edu.tr"
+  },
+  {
+    "name": "Balikesir University",
+    "domain": "balikesir.edu.tr"
+  },
+  {
+    "name": "Bandirma ONYEDI Eylul University",
+    "domain": "bandirma.edu.tr"
+  },
+  {
+    "name": "Bartin University",
+    "domain": "bartin.edu.tr"
+  },
+  {
+    "name": "Baskent University",
+    "domain": "baskent.edu.tr"
+  },
+  {
+    "name": "Batman University",
+    "domain": "batman.edu.tr"
+  },
+  {
+    "name": "Bayburt University",
+    "domain": "bayburt.edu.tr"
+  },
+  {
+    "name": "Beykent University",
+    "domain": "beykent.edu.tr"
+  },
+  {
+    "name": "Bezmialem Vakif University",
+    "domain": "bezmialem.edu.tr"
+  },
+  {
+    "name": "Bilecik University",
+    "domain": "bilecik.edu.tr"
+  },
+  {
+    "name": "Bilkent University",
+    "domain": "bilkent.edu.tr"
+  },
+  {
+    "name": "Bingol University",
+    "domain": "bingol.edu.tr"
+  },
+  {
+    "name": "Biruni University",
+    "domain": "biruni.edu.tr"
+  },
+  {
+    "name": "Bitlis Eren University",
+    "domain": "beu.edu.tr"
+  },
+  {
+    "name": "Bozok University",
+    "domain": "bozok.edu.tr"
+  },
+  {
+    "name": "Boğaziçi University",
+    "domain": "bogazici.edu.tr"
+  },
+  {
+    "name": "Bulent Ecevit University",
+    "domain": "beun.edu.tr"
+  },
+  {
+    "name": "Bursa Technical University",
+    "domain": "btu.edu.tr"
+  },
+  {
+    "name": "Cag University",
+    "domain": "cag.edu.tr"
+  },
+  {
+    "name": "Canakkale (18th March) University",
+    "domain": "comu.edu.tr"
+  },
+  {
+    "name": "Cankaya University",
+    "domain": "cankaya.edu.tr"
+  },
+  {
+    "name": "Cankiri Karatekin University",
+    "domain": "karatekin.edu.tr"
+  },
+  {
+    "name": "Celal Bayar University",
+    "domain": "mcbu.edu.tr"
+  },
+  {
+    "name": "Cukurova University",
+    "domain": "cu.edu.tr"
+  },
+  {
+    "name": "Dicle (Tirgris) University",
+    "domain": "dicle.edu.tr"
+  },
+  {
+    "name": "Dogus University",
+    "domain": "dogus.edu.tr"
+  },
+  {
+    "name": "Dokuz Eylül University",
+    "domain": "deu.edu.tr"
+  },
+  {
+    "name": "Dumlupinar University",
+    "domain": "dumlupinar.edu.tr"
+  },
+  {
+    "name": "Duzce University",
+    "domain": "duzce.edu.tr"
+  },
+  {
+    "name": "Ege University",
+    "domain": "ege.edu.tr"
+  },
+  {
+    "name": "Erciyes University",
+    "domain": "erciyes.edu.tr"
+  },
+  {
+    "name": "Erzincan Binali Yildirim University",
+    "domain": "ebyu.edu.tr"
+  },
+  {
+    "name": "Erzurum Technical University",
+    "domain": "erzurum.edu.tr"
+  },
+  {
+    "name": "Eskisehir Osmangazi University",
+    "domain": "ogu.edu.tr"
+  },
+  {
+    "name": "Eskisehir Technical University",
+    "domain": "eskisehir.edu.tr"
+  },
+  {
+    "name": "Fatih Sultan Mehmet University",
+    "domain": "fatihsultan.edu.tr"
+  },
+  {
+    "name": "Fenerbahce University",
+    "domain": "fbu.edu.tr"
+  },
+  {
+    "name": "Firat (Euphrates) University",
+    "domain": "firat.edu.tr"
+  },
+  {
+    "name": "Galatasaray University",
+    "domain": "gsu.edu.tr"
+  },
+  {
+    "name": "Gazi University Ankara",
+    "domain": "gazi.edu.tr"
+  },
+  {
+    "name": "Gaziantep University",
+    "domain": "gantep.edu.tr"
+  },
+  {
+    "name": "Gaziosmanpasa University",
+    "domain": "gop.edu.tr"
+  },
+  {
+    "name": "Gebze Institute of Technology",
+    "domain": "gyte.edu.tr"
+  },
+  {
+    "name": "Gebze Technical University",
+    "domain": "gtu.edu.tr"
+  },
+  {
+    "name": "Giresun University",
+    "domain": "giresun.edu.tr"
+  },
+  {
+    "name": "Gulhane Military Medical Academy",
+    "domain": "gata.edu.tr"
+  },
+  {
+    "name": "Gumushane University",
+    "domain": "gumushane.edu.tr"
+  },
+  {
+    "name": "Hacettepe University",
+    "domain": "hun.edu.tr"
+  },
+  {
+    "name": "Hakkari University",
+    "domain": "hakkari.edu.tr"
+  },
+  {
+    "name": "Halic University",
+    "domain": "halic.edu.tr"
+  },
+  {
+    "name": "Harran University",
+    "domain": "harran.edu.tr"
+  },
+  {
+    "name": "Hasan Kalyoncu University",
+    "domain": "hku.edu.tr"
+  },
+  {
+    "name": "Health Sciences University",
+    "domain": "sbu.edu.tr"
+  },
+  {
+    "name": "Hitit University",
+    "domain": "hitit.edu.tr"
+  },
+  {
+    "name": "Igdir University",
+    "domain": "igdir.edu.tr"
+  },
+  {
+    "name": "Inönü University",
+    "domain": "inonu.edu.tr"
+  },
+  {
+    "name": "Isik University",
+    "domain": "isikun.edu.tr"
+  },
+  {
+    "name": "Iskenderun Technical University",
+    "domain": "iste.edu.tr"
+  },
+  {
+    "name": "Istanbul 29 Mayis University",
+    "domain": "29mayis.edu.tr"
+  },
+  {
+    "name": "Istanbul Arel University",
+    "domain": "arel.edu.tr"
+  },
+  {
+    "name": "Istanbul Aydin University",
+    "domain": "aydin.edu.tr"
+  },
+  {
+    "name": "Istanbul Bilgi University",
+    "domain": "bilgi.edu.tr"
+  },
+  {
+    "name": "Istanbul Esenyurt University",
+    "domain": "esenyurt.edu.tr"
+  },
+  {
+    "name": "Istanbul Gedik University",
+    "domain": "gedik.edu.tr"
+  },
+  {
+    "name": "Istanbul Gelisim University",
+    "domain": "gelisim.edu.tr"
+  },
+  {
+    "name": "Istanbul Kemerburgaz University",
+    "domain": "kemerburgaz.edu.tr"
+  },
+  {
+    "name": "Istanbul Kultur University",
+    "domain": "iku.edu.tr"
+  },
+  {
+    "name": "Istanbul Medeniyet University",
+    "domain": "medeniyet.edu.tr"
+  },
+  {
+    "name": "Istanbul Medipol University",
+    "domain": "medipol.edu.tr"
+  },
+  {
+    "name": "Istanbul Rumeli University",
+    "domain": "rumeli.edu.tr"
+  },
+  {
+    "name": "Istanbul Sabahattin Zaim University",
+    "domain": "iszu.edu.tr"
+  },
+  {
+    "name": "Istanbul Technical University",
+    "domain": "itu.edu.tr"
+  },
+  {
+    "name": "Istanbul Ticaret University",
+    "domain": "ticaret.edu.tr"
+  },
+  {
+    "name": "Istanbul Topkapi University",
+    "domain": "topkapi.edu.tr"
+  },
+  {
+    "name": "Istanbul University",
+    "domain": "istanbul.edu.tr"
+  },
+  {
+    "name": "Istinye University",
+    "domain": "istinye.edu.tr"
+  },
+  {
+    "name": "Izmir Bakırçay University",
+    "domain": "bakircay.edu.tr"
+  },
+  {
+    "name": "Izmir Democracy University",
+    "domain": "idu.edu.tr"
+  },
+  {
+    "name": "Izmir Institute of Technology",
+    "domain": "iyte.edu.tr"
+  },
+  {
+    "name": "Izmir Katip Celebi University",
+    "domain": "ikc.edu.tr"
+  },
+  {
+    "name": "Izmir Tınaztepe University",
+    "domain": "tinaztepe.edu.tr"
+  },
+  {
+    "name": "İzmir University of Economics",
+    "domain": "ieu.edu.tr"
+  },
+  {
+    "name": "Kadir Has University",
+    "domain": "khas.edu.tr"
+  },
+  {
+    "name": "Kafkas University",
+    "domain": "kafkas.edu.tr"
+  },
+  {
+    "name": "Kahramanmaras Sutcu İmam University",
+    "domain": "ksu.edu.tr"
+  },
+  {
+    "name": "Karabuk University",
+    "domain": "karabuk.edu.tr"
+  },
+  {
+    "name": "Karadeniz Technical University",
+    "domain": "ktu.edu.tr"
+  },
+  {
+    "name": "karamanoglu mehmet bey University",
+    "domain": "kmu.edu.tr"
+  },
+  {
+    "name": "Karatay University",
+    "domain": "karatay.edu.tr"
+  },
+  {
+    "name": "Kastamonu University",
+    "domain": "kastamonu.edu.tr"
+  },
+  {
+    "name": "Kilis 7 Aralık University",
+    "domain": "kilis.edu.tr"
+  },
+  {
+    "name": "Kirikkale University",
+    "domain": "kku.edu.tr"
+  },
+  {
+    "name": "Kirklareli University",
+    "domain": "kirklareli.edu.tr"
+  },
+  {
+    "name": "Kocaeli University",
+    "domain": "kou.edu.tr"
+  },
+  {
+    "name": "Konya Gida Tarim University",
+    "domain": "gidatarim.edu.tr"
+  },
+  {
+    "name": "Konya Technical University",
+    "domain": "ktun.edu.tr"
+  },
+  {
+    "name": "Koç University",
+    "domain": "ku.edu.tr"
+  },
+  {
+    "name": "Maltepe University",
+    "domain": "maltepe.edu.tr"
+  },
+  {
+    "name": "Mardin Artuklu University",
+    "domain": "artuklu.edu.tr"
+  },
+  {
+    "name": "Marmara University",
+    "domain": "marmara.edu.tr"
+  },
+  {
+    "name": "MEF University",
+    "domain": "mef.edu.tr"
+  },
+  {
+    "name": "Mehmet Akif Ersoy University",
+    "domain": "mehmetakif.edu.tr"
+  },
+  {
+    "name": "Mersin University",
+    "domain": "mersin.edu.tr"
+  },
+  {
+    "name": "Middle East Technical University",
+    "domain": "metu.edu.tr"
+  },
+  {
+    "name": "Mimar Sinan Fine Arts University",
+    "domain": "msgsu.edu.tr"
+  },
+  {
+    "name": "Mimar Sinan University",
+    "domain": "msu.edu.tr"
+  },
+  {
+    "name": "Mugla Sitki Kocman University",
+    "domain": "mu.edu.tr"
+  },
+  {
+    "name": "Mus Alparslan University",
+    "domain": "alparslan.edu.tr"
+  },
+  {
+    "name": "Mustafa Kemal University",
+    "domain": "mku.edu.tr"
+  },
+  {
+    "name": "Namik Kemal University",
+    "domain": "nku.edu.tr"
+  },
+  {
+    "name": "Necmettin Erbakan University",
+    "domain": "konya.edu.tr"
+  },
+  {
+    "name": "Nevsehir Haci Bektas Veli University",
+    "domain": "nevsehir.edu.tr"
+  },
+  {
+    "name": "Nigde Omer Halisdemir University",
+    "domain": "nigde.edu.tr"
+  },
+  {
+    "name": "Nisantasi University",
+    "domain": "nisantasi.edu.tr"
+  },
+  {
+    "name": "Nuh Naci Yazgan University",
+    "domain": "nny.edu.tr"
+  },
+  {
+    "name": "Okan University",
+    "domain": "okan.edu.tr"
+  },
+  {
+    "name": "Omer Halisdemir University",
+    "domain": "ohu.edu.tr"
+  },
+  {
+    "name": "Ondokuz Mayıs University",
+    "domain": "omu.edu.tr"
+  },
+  {
+    "name": "Ordu University",
+    "domain": "odu.edu.tr"
+  },
+  {
+    "name": "Osmaniye Korkut Ata University",
+    "domain": "osmaniye.edu.tr"
+  },
+  {
+    "name": "OSTIM Technical University",
+    "domain": "ostimteknik.edu.tr"
+  },
+  {
+    "name": "Ozyegin University",
+    "domain": "ozyegin.edu.tr"
+  },
+  {
+    "name": "Pamukkale University",
+    "domain": "pau.edu.tr"
+  },
+  {
+    "name": "Piri Reis University",
+    "domain": "pirireis.edu.tr"
+  },
+  {
+    "name": "Recep Tayip Erdogan University",
+    "domain": "erdogan.edu.tr"
+  },
+  {
+    "name": "Sabanci University",
+    "domain": "sabanciuniv.edu"
+  },
+  {
+    "name": "Sakarya University",
+    "domain": "sau.edu.tr"
+  },
+  {
+    "name": "Sakarya Uygulamalı Bilimler Üniversitesi",
+    "domain": "subu.edu.tr"
+  },
+  {
+    "name": "Samsun University",
+    "domain": "samsun.edu.tr"
+  },
+  {
+    "name": "Sanko University",
+    "domain": "sanko.edu.tr"
+  },
+  {
+    "name": "Selcuk University",
+    "domain": "selcuk.edu.tr"
+  },
+  {
+    "name": "Siirt University",
+    "domain": "siirt.edu.tr"
+  },
+  {
+    "name": "Sinop University",
+    "domain": "sinop.edu.tr"
+  },
+  {
+    "name": "Sirnak University",
+    "domain": "sirnak.edu.tr"
+  },
+  {
+    "name": "Sivas Cumhuriyet University",
+    "domain": "cumhuriyet.edu.tr"
+  },
+  {
+    "name": "Suleyman Demirel University",
+    "domain": "sdu.edu.tr"
+  },
+  {
+    "name": "Tarsus University",
+    "domain": "tarsus.edu.tr"
+  },
+  {
+    "name": "TED University",
+    "domain": "tedu.edu.tr"
+  },
+  {
+    "name": "Tobb Economics and Technology University",
+    "domain": "etu.edu.tr"
+  },
+  {
+    "name": "Toros University",
+    "domain": "toros.edu.tr"
+  },
+  {
+    "name": "Trakya University",
+    "domain": "trakya.edu.tr"
+  },
+  {
+    "name": "Tunceli University",
+    "domain": "tunceli.edu.tr"
+  },
+  {
+    "name": "Turkish Naval Academy",
+    "domain": "dho.edu.tr"
+  },
+  {
+    "name": "Türkisch-Deutsche Universität",
+    "domain": "tau.edu.tr"
+  },
+  {
+    "name": "Ufuk University",
+    "domain": "ufuk.edu.tr"
+  },
+  {
+    "name": "Uludag University",
+    "domain": "uludag.edu.tr"
+  },
+  {
+    "name": "University of Kyrenia",
+    "domain": "std.kyrenia.edu.tr"
+  },
+  {
+    "name": "University of Turkish Aeronautical Association",
+    "domain": "thk.edu.tr"
+  },
+  {
+    "name": "Usak University",
+    "domain": "usak.edu.tr"
+  },
+  {
+    "name": "Uskudar University",
+    "domain": "uskudar.edu.tr"
+  },
+  {
+    "name": "Yalova University",
+    "domain": "yalova.edu.tr"
+  },
+  {
+    "name": "Yasar University",
+    "domain": "yasar.edu.tr"
+  },
+  {
+    "name": "Yeditepe University",
+    "domain": "yeditepe.edu.tr"
+  },
+  {
+    "name": "Yeni Yuzyil University",
+    "domain": "yeniyuzyil.edu.tr"
+  },
+  {
+    "name": "Yildirim Beyazit University",
+    "domain": "ybu.edu.tr"
+  },
+  {
+    "name": "Yildiz Technical University",
+    "domain": "yildiz.edu.tr"
+  },
+  {
+    "name": "Yuksek ihtisas University",
+    "domain": "yuksekihtisasuniversitesi.edu.tr"
+  },
+  {
+    "name": "Yüzüncü Yil (Centennial) University",
+    "domain": "yyu.edu.tr"
+  },
+  {
+    "name": "Zonguldak Karaelmas University",
+    "domain": "karaelmas.edu.tr"
+  }
+]
