@@ -633,6 +633,10 @@ class StudyMateApp(BaseHTTPRequestHandler):
         content_types = {
             ".css": "text/css; charset=utf-8",
             ".js": "application/javascript; charset=utf-8",
+            ".png": "image/png",
+            ".jpg": "image/jpeg",
+            ".svg": "image/svg+xml",
+            ".ico": "image/x-icon",
         }
         content_type = content_types.get(file_path.suffix, "application/octet-stream")
         body = resolved_path.read_bytes()
@@ -664,7 +668,7 @@ class StudyMateApp(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "same-origin")
         self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-        self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self'; base-uri 'none'; frame-ancestors 'none'")
+        self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'")
         self.end_headers()
         self.wfile.write(encoded)
 
@@ -1096,7 +1100,7 @@ def layout(title: str, content: str, user: sqlite3.Row | None, flash: str) -> st
 <body>
   <a class="skip-link" href="#content">İçeriğe geç</a>
   <header class="topbar">
-    <a class="brand" href="/" aria-label="StudyMate ana sayfa"><span class="brand-mark">SM</span><span>StudyMate</span></a>
+    <a class="brand" href="/" aria-label="StudyMate ana sayfa"><span class="brand-mark"><img src="/static/logo.png" alt="StudyMate" width="36" height="36"></span><span>StudyMate</span></a>
     <nav aria-label="Ana navigasyon">{nav}</nav>
     {user_chip}
   </header>
@@ -1105,7 +1109,7 @@ def layout(title: str, content: str, user: sqlite3.Row | None, flash: str) -> st
     {content}
   </main>
   <footer class="site-footer">
-    <span>StudyMate MVP</span>
+    <span>StudyMate &copy; 2026</span>
     <a href="/security">Güvenlik ilkeleri</a>
   </footer>
 </body>
@@ -1118,15 +1122,15 @@ def home_page() -> str:
       <div class="hero-copy">
         <p class="eyebrow">Üniversite odaklı çalışma ağı</p>
         <h1>Konu, seviye ve semte göre çalışma arkadaşı bul.</h1>
-        <p class="lead">StudyMate; edu mail, güvenli buluşma önerisi ve istek onayı ile öğrencileri daha kontrollü bir çalışma akışında eşleştirir.</p>
+        <p class="lead">StudyMate; üniversite doğrulaması, güvenli buluşma önerisi ve istek onayı ile öğrencileri akıllıca eşleştirir.</p>
         <div class="actions">
           <a class="button" href="/register">Hemen başla</a>
           <a class="ghost" href="/login">Demo hesapla gir</a>
         </div>
         <div class="trust-row" aria-label="Güven sinyalleri">
-          <span>Edu domain kontrolü</span>
-          <span>CSRF koruması</span>
-          <span>Telefon gizliliği</span>
+          <span>🎓 Üniversite doğrulaması</span>
+          <span>🔒 Güvenli altyapı</span>
+          <span>📱 Gizlilik öncelikli</span>
         </div>
       </div>
       <div class="hero-panel">
@@ -1152,13 +1156,13 @@ def home_page() -> str:
     </section>
     <section class="stats landing-stats">
       <article><strong>3 adım</strong><span>İlan aç, istek al, eşleş</span></article>
-      <article><strong>10/saat</strong><span>Spam limiti</span></article>
-      <article><strong>edu</strong><span>Okul domaini zorunlu</span></article>
+      <article><strong>Akıllı</strong><span>Otomatik eşleşme skoru</span></article>
+      <article><strong>Güvenli</strong><span>Üniversite doğrulamalı</span></article>
     </section>
     <section class="features">
-      <article><span class="feature-icon">01</span><h3>Hedef odaklı</h3><p>Swipe yerine konu, seviye, zaman ve semt bazlı çalışma ilanları var.</p></article>
-      <article><span class="feature-icon">02</span><h3>Kontrollü</h3><p>İstek kabul edilmeden telefon gösterilmez; ilk buluşma için güvenli yer önerilir.</p></article>
-      <article><span class="feature-icon">03</span><h3>Yayına hazır MVP</h3><p>Kayıt, giriş, ilan, istek, eşleşme, rapor ve temel güvenlik akışlarını kapsar.</p></article>
+      <article><span class="feature-icon">🎯</span><h3>Hedef odaklı</h3><p>Swipe yerine konu, seviye, zaman ve semt bazlı çalışma ilanları var.</p></article>
+      <article><span class="feature-icon">🛡️</span><h3>Kontrollü</h3><p>İstek kabul edilmeden telefon gösterilmez; ilk buluşma için güvenli yer önerilir.</p></article>
+      <article><span class="feature-icon">⚡</span><h3>Hızlı eşleşme</h3><p>Akıllı algoritma ile ilgi alanlarına göre en uygun çalışma partnerini bul.</p></article>
     </section>
     """
 
@@ -1511,15 +1515,15 @@ def security_page() -> str:
     return """
     <section class="form-wrap">
       <h1>Güvenlik ve gizlilik</h1>
+      <p class="form-intro">StudyMate'te güvenliğin her zaman ön planda. İşte seni nasıl koruyoruz:</p>
       <ul class="checklist">
-        <li>Parolalar PBKDF2-SHA256, kullanıcıya özel salt ve 310.000 iterasyon ile hashlenir.</li>
-        <li>Kullanıcı okulunu Türkiye üniversite listesinden seçer; email domain'i okul domain'iyle zorunlu eşleşir.</li>
-        <li>Session tokenları cookie'de random token olarak durur; veritabanında sadece SHA-256 hash saklanır.</li>
-        <li>POST formlarında CSRF token kontrolü vardır.</li>
-        <li>Tam adres tutulmaz; sadece semt veya Online seçeneği kullanılır.</li>
-        <li>Telefon numarası ilan ve isteklerde gizlidir; sadece kabul edilen eşleşmelerde iki tarafa açılır.</li>
-        <li>İstek gönderme saatlik limite tabidir ve aynı ilana tekrar istek engellenir.</li>
-        <li>Eşleşme sonrası güvenli yer önerisi ve raporlama akışı vardır.</li>
+        <li>🎓 Sadece üniversite e-posta adresiyle kayıt olunabilir — gerçek öğrenci doğrulaması.</li>
+        <li>🔒 Parolaların endüstri standardı şifreleme ile korunur, hiçbir zaman düz metin olarak saklanmaz.</li>
+        <li>📍 Tam adresin hiçbir zaman paylaşılmaz; sadece semt veya online tercihi kullanılır.</li>
+        <li>📱 Telefon numaran yalnızca karşılıklı onaylanmış eşleşmelerde görünür olur.</li>
+        <li>🛡️ Spam koruması ile saatte en fazla 10 istek gönderilebilir.</li>
+        <li>📍 Eşleşme sonrası güvenli ve kalabalık buluşma yeri önerisi sunulur.</li>
+        <li>🚨 Uygunsuz davranışları kolayca raporlayabilirsin.</li>
       </ul>
     </section>
     """
