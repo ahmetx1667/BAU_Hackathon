@@ -17,6 +17,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse
+import urllib.request
 
 
 ROOT = Path(__file__).resolve().parent
@@ -489,9 +490,9 @@ def seed_demo() -> None:
         if existing:
             return
         users = [
-            ("Ahmet Kaya", "ahmet@bogazici.edu.tr", "Ahmet2026!", "Boğaziçi University", "+90 555 100 10 10", "Backend öğreniyorum.", "Python, Flask, SQL"),
-            ("Ece Demir", "ece@itu.edu.tr", "Ece2026!", "Istanbul Technical University", "+90 555 200 20 20", "API geliştirmek istiyorum.", "Python, Flask, Backend"),
-            ("Mert Yılmaz", "mert@marmara.edu.tr", "Mert2026!", "Marmara University", "+90 555 300 30 30", "Frontend odaklıyım.", "React, TypeScript, UI"),
+            ("Ahmet Kaya", "ahmet@bogazici.edu.tr", "Ahmet2026!", "Boğaziçi University", "+90 555 100 10 10", "Fizik ve matematik çalışıyorum, özellikle mekanik konularına ilgi duyuyorum.", "Fizik, Matematik, Lineer Cebir"),
+            ("Ece Demir", "ece@itu.edu.tr", "Ece2026!", "Istanbul Technical University", "+90 555 200 20 20", "Organik kimya ve biyoloji alanında kendimi geliştirmek istiyorum.", "Kimya, Biyoloji, Organik Kimya"),
+            ("Mert Yılmaz", "mert@marmara.edu.tr", "Mert2026!", "Marmara University", "+90 555 300 30 30", "Kalkülüs ve diferansiyel denklemler üzerine yoğunlaşıyorum.", "Matematik, Kalkülüs, İstatistik"),
         ]
         for name, email, password, school, phone, bio, skills in users:
             conn.execute(
@@ -507,9 +508,9 @@ def seed_demo() -> None:
         start = datetime_local()
         end = (localnow() + timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M")
         posts = [
-            (ahmet, "Python Flask", "Beginner", "Besiktas", "Yuz yuze", "Kutuphane", start, end, "Flask ile güvenli API ve SQLite çalışmak istiyorum."),
-            (ece, "Backend API", "Intermediate", "Besiktas", "Yuz yuze", "Kafe", start, end, "Python ve Flask üzerinden endpoint tasarımı çalışıyorum."),
-            (mert, "React", "Intermediate", "Online", "Online", "Online", start, end, "React component mimarisi ve state management çalışacağım."),
+            (ahmet, "Fizik Mekaniği", "Beginner", "Besiktas", "Yuz yuze", "Kutuphane", start, end, "Newton mekaniği ve enerji korunumu konularını birlikte çalışmak istiyorum."),
+            (ece, "Organik Kimya", "Intermediate", "Besiktas", "Yuz yuze", "Kafe", start, end, "Organik bileşik reaksiyonları ve stereokimya konularını çalışıyorum."),
+            (mert, "Kalkülüs", "Intermediate", "Online", "Online", "Online", start, end, "İntegral ve türev uygulamaları üzerinde beraber çalışacağım."),
         ]
         for post in posts:
             conn.execute(
@@ -1138,11 +1139,11 @@ def home_page() -> str:
           <div class="preview-head">
             <div>
               <span class="badge">AI Match Score 87%</span>
-              <h3>Ece ile Backend API</h3>
+              <h3>Ece ile Organik Kimya</h3>
             </div>
             <span class="avatar">ED</span>
           </div>
-          <p>Beşiktaş civarında Flask endpoint tasarımı çalışacak bir partner arıyor.</p>
+          <p>Beşiktaş civarında organik kimya reaksiyonlarını çalışacak bir partner arıyor.</p>
           <div class="meta">
             <span>Orta</span>
             <span>Kütüphane</span>
@@ -1260,7 +1261,7 @@ def profile_page(user: sqlite3.Row, csrf: str) -> str:
     return f"""
     <section class="form-wrap">
       <h1>Profil</h1>
-      <p class="form-intro">Eşleşme kalitesini artırmak için çalıştığın teknolojileri ve kısa hedefini ekle.</p>
+      <p class="form-intro">Eşleşme kalitesini artırmak için çalıştığın dersleri ve kısa hedefini ekle.</p>
       <form method="post" action="/profile" class="stack">
         {csrf}
         <label>Üniversite
@@ -1273,7 +1274,7 @@ def profile_page(user: sqlite3.Row, csrf: str) -> str:
         </label>
         <p class="hint">Telefon numaran sadece eşleşme kabul edildikten sonra karşı tarafa gösterilir.</p>
         <label>İlgi alanları
-          <input name="skills" value="{escape(user["skills"])}" maxlength="300" placeholder="Python, Flask, SQL">
+          <input name="skills" value="{escape(user["skills"])}" maxlength="300" placeholder="Fizik, Matematik, Kimya">
         </label>
         <label>Bio
           <textarea name="bio" rows="5" maxlength="500" placeholder="Ne çalışıyorsun?">{escape(user["bio"])}</textarea>
@@ -1290,11 +1291,11 @@ def post_form_page(csrf: str) -> str:
     return f"""
     <section class="form-wrap">
       <h1>Çalışma ilanı oluştur</h1>
-      <p class="form-intro">Konu ve zaman bilgisini net yaz; sistem benzer ilgi alanlarını yakalayıp match skorunu hesaplar.</p>
+      <p class="form-intro">Konu ve zaman bilgisini net yaz; DeepSeek AI benzer ilgi alanlarını analiz edip match skorunu hesaplar.</p>
       <form method="post" action="/posts/new" class="stack js-post-form">
         {csrf}
         <label>Konu
-          <input name="topic" required maxlength="100" placeholder="Python Flask">
+          <input name="topic" required maxlength="100" placeholder="Fizik Mekaniği">
         </label>
         <div class="two-col">
           <label>Seviye
@@ -1321,7 +1322,7 @@ def post_form_page(csrf: str) -> str:
           </label>
         </div>
         <label>Açıklama
-          <textarea name="description" rows="5" maxlength="700" placeholder="Flask öğreniyorum, beraber mini API yapmak istiyorum."></textarea>
+          <textarea name="description" rows="5" maxlength="700" placeholder="Fizik sınavına hazırlanıyorum, beraber problem çözmek istiyorum."></textarea>
         </label>
         <button class="button" type="submit">Yayınla</button>
       </form>
@@ -1358,7 +1359,13 @@ def posts_page(
     """
 
 
-def match_score(user: sqlite3.Row, post: sqlite3.Row) -> tuple[int, str]:
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "sk-cf3cdfb0da4e4ba2b90b1386e87ed7bd")
+DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
+_match_cache: dict[tuple[int, int], tuple[int, str]] = {}
+
+
+def match_score_basic(user: sqlite3.Row, post: sqlite3.Row) -> tuple[int, str]:
+    """Fallback keyword-based scoring."""
     user_words = slug_words(f'{user["skills"]} {user["bio"]}')
     post_words = slug_words(f'{post["topic"]} {post["description"]} {post["skills"]}')
     overlap = user_words & post_words
@@ -1369,6 +1376,74 @@ def match_score(user: sqlite3.Row, post: sqlite3.Row) -> tuple[int, str]:
     else:
         reason = "Konu ve zaman bilgisi üzerinden temel uygunluk."
     return score, reason
+
+
+def match_score(user: sqlite3.Row, post: sqlite3.Row) -> tuple[int, str]:
+    """DeepSeek AI powered match scoring with in-memory cache."""
+    cache_key = (user["id"], post["id"])
+    if cache_key in _match_cache:
+        return _match_cache[cache_key]
+
+    user_info = f"İsim: {user['name']}, Okul: {user['school']}, İlgi alanları: {user['skills']}, Bio: {user['bio']}"
+    post_info = f"Konu: {post['topic']}, Seviye: {display_label(post['level'])}, Açıklama: {post['description']}, İlan sahibi ilgi alanları: {post.get('skills', '')}"
+
+    prompt = (
+        "İki öğrenci arasındaki çalışma uyumluluğunu değerlendir.\n\n"
+        f"Öğrenci profili:\n{user_info}\n\n"
+        f"Çalışma ilanı:\n{post_info}\n\n"
+        "0-100 arası bir uyum skoru ve kısa bir Türkçe açıklama ver.\n"
+        "Yanıtını tam olarak şu formatta ver (başka bir şey yazma):\n"
+        "SKOR: [sayı]\n"
+        "NEDEN: [kısa açıklama]"
+    )
+
+    try:
+        payload = json.dumps({
+            "model": "deepseek-chat",
+            "messages": [
+                {"role": "system", "content": "Sen bir eğitim eşleştirme asistanısın. Öğrencilerin ilgi alanları, seviyeleri ve hedeflerine göre uyumluluk skoru ver. Kısa ve öz yanıt ver."},
+                {"role": "user", "content": prompt}
+            ],
+            "max_tokens": 120,
+            "temperature": 0.3
+        }).encode("utf-8")
+
+        req = urllib.request.Request(
+            DEEPSEEK_URL,
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+            },
+        )
+
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+
+        content = result["choices"][0]["message"]["content"].strip()
+
+        score = 50
+        reason = "AI değerlendirmesi tamamlandı."
+
+        for line in content.split("\n"):
+            line = line.strip()
+            if line.upper().startswith("SKOR:"):
+                try:
+                    raw = line.split(":", 1)[1].strip().replace("%", "")
+                    score = max(0, min(100, int(raw)))
+                except (ValueError, IndexError):
+                    pass
+            elif line.upper().startswith("NEDEN:"):
+                reason = line.split(":", 1)[1].strip()
+
+        _match_cache[cache_key] = (score, reason)
+        return score, reason
+
+    except Exception as exc:
+        print(f"[DeepSeek API hata] {exc}")
+        result = match_score_basic(user, post)
+        _match_cache[cache_key] = result
+        return result
 
 
 def post_card(user: sqlite3.Row, post: sqlite3.Row, status: str | None, csrf: str) -> str:
