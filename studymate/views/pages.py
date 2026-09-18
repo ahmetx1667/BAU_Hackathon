@@ -326,11 +326,12 @@ def page_not_found() -> str:
     return '<section class="form-wrap"><h1>404</h1><p>That page does not exist.</p><a class="button" href="/">Go home</a></section>'
 
 
-def error_page(exc: Exception) -> str:
-    return f"""
+def error_page() -> str:
+    """Deliberately says nothing specific — the detail is in the server log."""
+    return """
     <section class="form-wrap">
       <h1>Something went wrong</h1>
-      <p class="muted">{escape(exc)}</p>
+      <p class="muted">The error has been logged. Please try again.</p>
       <a class="button" href="/dashboard">Back to the dashboard</a>
     </section>
     """

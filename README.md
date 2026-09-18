@@ -69,8 +69,14 @@ These were deliberate, and they are the part of the project worth reading:
   a live login cookie.
 - **CSRF tokens** are bound to the session and checked on every state-changing
   POST, also in constant time.
-- **Abuse limits**: 10 study requests per account per hour, and a 10-minute
-  lockout after 10 failed sign-ins from one address.
+- **Abuse limits**: 10 study requests per account per hour, a 10-minute lockout
+  after 10 failed sign-ins from one address, and a 64 KB cap on request bodies.
+- **Flash messages are signed.** They travel in the query string across a
+  redirect, so without a signature anyone could send a link that renders their
+  own text on our page — escaped, so not XSS, but a convincing phishing page on
+  a domain the reader already trusts.
+- **The demo accounts do not seed on a public bind.** Their passwords are in this
+  README, so they are only created when the app is bound to loopback.
 
 ### Match scoring
 
@@ -120,10 +126,11 @@ anything.
 |---|---|---|
 | `HOST` | `127.0.0.1` | Interface to bind. Use `0.0.0.0` only behind a reverse proxy. |
 | `PORT` | `8000` | HTTP port. |
-| `STUDYMATE_SECRET_KEY` | generated | Set this in production. |
+| `STUDYMATE_SECRET_KEY` | generated | Signs flash messages. Set explicitly in production. |
 | `STUDYMATE_DB_PATH` | `instance/studymate.sqlite3` | SQLite file location. |
-| `STUDYMATE_SECRET_PATH` | `instance/secret.key` | Generated secret location. |
+| `STUDYMATE_SECRET_PATH` | `instance/secret.key` | Where the generated secret is kept. |
 | `STUDYMATE_COOKIE_SECURE` | `0` | Set to `1` when served over HTTPS. |
+| `STUDYMATE_SEED_DEMO` | loopback only | Seeds the demo accounts. Never enable this publicly. |
 | `DEEPSEEK_API_KEY` | empty | Enables LLM scoring; falls back to keywords when unset. |
 
 Generate a secret with:

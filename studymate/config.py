@@ -85,6 +85,30 @@ MAX_REQUESTS_PER_HOUR = 10       # study requests one account may send per hour
 MAX_FAILED_LOGINS = 10           # failed attempts from one IP before a lockout
 LOGIN_LOCKOUT_SECONDS = 600      # how long that lockout lasts
 
+# Longest form submission accepted. Every form on the site fits in a few KB; the
+# cap exists so a request that merely *claims* a huge Content-Length cannot make
+# the server allocate it.
+MAX_BODY_BYTES = 64 * 1024
+
+# Distinct client addresses tracked for failed logins. Past this the oldest
+# entries are dropped, so the table cannot grow without bound.
+MAX_TRACKED_CLIENTS = 10_000
+
+# ---- Demo data -------------------------------------------------------------
+#
+# The seeded accounts have passwords published in the README, so they must never
+# appear on a public deployment. Default: on when bound to loopback (a developer
+# running it locally), off otherwise. STUDYMATE_SEED_DEMO overrides either way.
+
+_LOOPBACK = {"127.0.0.1", "::1", "localhost"}
+_seed_override = os.environ.get("STUDYMATE_SEED_DEMO", "").lower()
+if _seed_override in {"1", "true", "yes", "on"}:
+    SEED_DEMO = True
+elif _seed_override in {"0", "false", "no", "off"}:
+    SEED_DEMO = False
+else:
+    SEED_DEMO = HOST in _LOOPBACK
+
 # ---- Match scoring ---------------------------------------------------------
 
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")

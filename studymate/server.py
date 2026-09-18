@@ -10,6 +10,7 @@ import hmac
 import secrets
 import sqlite3
 import time
+import traceback
 from datetime import datetime, timedelta
 from http import HTTPStatus
 from http.cookies import SimpleCookie
@@ -22,9 +23,12 @@ from .config import (
     COOKIE_SECURE,
     HOST,
     LOGIN_LOCKOUT_SECONDS,
+    MAX_BODY_BYTES,
     MAX_FAILED_LOGINS,
     MAX_REQUESTS_PER_HOUR,
+    MAX_TRACKED_CLIENTS,
     PORT,
+    SEED_DEMO,
     SESSION_DAYS,
     STATIC_DIR,
 )
@@ -43,7 +47,7 @@ from .formatting import (
     validate_study_times,
 )
 from .matching import clear_cache_for_user
-from .security import hash_password, token_hash, verify_password
+from .security import hash_password, sign_flash, token_hash, verify_flash, verify_password
 from .universities import compose_edu_email, require_university
 from .views.layout import layout
 from .views.pages import (
@@ -80,10 +84,31 @@ SECURITY_HEADERS = {
     ),
 }
 
-# Failed logins per client IP. In-memory, so it resets on restart and does not
-# survive more than one process — enough to slow down guessing, not a substitute
-# for a real rate limiter behind a proxy.
+class RequestTooLarge(Exception):
+    """Raised when a form submission exceeds MAX_BODY_BYTES."""
+
+
+# Failed logins per client address. In-memory, so it resets on restart and is not
+# shared between processes — enough to slow down guessing, not a substitute for a
+# real rate limiter.
+#
+# Two limitations worth knowing. The key is the socket's peer address, so behind a
+# reverse proxy every user looks like the proxy and one attacker would lock out
+# everybody; deployments behind a proxy need to read a forwarded-for header
+# instead. And the table is capped, because an attacker rotating source addresses
+# would otherwise grow it until the process runs out of memory.
 _failed_logins: dict[str, dict[str, float]] = {}
+
+
+def _prune_failed_logins(now: float) -> None:
+    """Drop expired entries, and the oldest ones if the table is still too big."""
+    for ip in [ip for ip, r in _failed_logins.items() if r["locked_until"] and now >= r["locked_until"]]:
+        del _failed_logins[ip]
+    if len(_failed_logins) > MAX_TRACKED_CLIENTS:
+        for ip in sorted(_failed_logins, key=lambda i: _failed_logins[i]["first_seen"])[
+            : len(_failed_logins) - MAX_TRACKED_CLIENTS
+        ]:
+            del _failed_logins[ip]
 
 
 class StudyMateApp(BaseHTTPRequestHandler):
@@ -154,8 +179,14 @@ class StudyMateApp(BaseHTTPRequestHandler):
             self.redirect("/login", "Sign in to continue.", "error")
         except ValidationError as exc:
             self.redirect(exc.redirect_to, str(exc), "error")
-        except Exception as exc:
-            self.render("Error", error_page(exc), status=HTTPStatus.INTERNAL_SERVER_ERROR)
+        except RequestTooLarge:
+            self.send_error(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, "Request body too large")
+        except Exception:
+            # The traceback goes to the server log; the visitor gets a generic
+            # page. Exception text routinely carries file paths and SQL, and none
+            # of that belongs in a browser.
+            traceback.print_exc()
+            self.render("Error", error_page(), status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
     # ---- Request plumbing --------------------------------------------------
 
@@ -178,8 +209,15 @@ class StudyMateApp(BaseHTTPRequestHandler):
             return user, session
 
     def read_form(self) -> dict[str, str]:
-        length = int(self.headers.get("Content-Length", 0))
-        raw = self.rfile.read(length).decode("utf-8")
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+        except ValueError:
+            raise RequestTooLarge()
+        # Checked before reading: the point is to never allocate what a malicious
+        # Content-Length asks for.
+        if length < 0 or length > MAX_BODY_BYTES:
+            raise RequestTooLarge()
+        raw = self.rfile.read(length).decode("utf-8", errors="replace")
         return {k: v[-1].strip() for k, v in parse_qs(raw, keep_blank_values=True).items()}
 
     def require_login(self) -> sqlite3.Row:
@@ -224,7 +262,10 @@ class StudyMateApp(BaseHTTPRequestHandler):
     def flash_from_query(self) -> str:
         message = self.query.get("flash", "")
         category = self.query.get("category", "info")
-        if not message:
+        signature = self.query.get("sig", "")
+        # An unsigned or badly signed message did not come from us — drop it
+        # silently rather than render someone else's words on our page.
+        if not message or not verify_flash(message, category, signature):
             return ""
         return f'<div class="flash {escape(category)}">{escape(message)}</div>'
 
@@ -245,7 +286,11 @@ class StudyMateApp(BaseHTTPRequestHandler):
         self.wfile.write(encoded)
 
     def redirect(self, path: str, flash: str = "", category: str = "info") -> None:
-        params = {"flash": flash, "category": category} if flash else {}
+        params = (
+            {"flash": flash, "category": category, "sig": sign_flash(flash, category)}
+            if flash
+            else {}
+        )
         location = path + (("?" + urlencode(params)) if params else "")
         self.send_response(HTTPStatus.SEE_OTHER)
         self.send_header("Location", location)
@@ -290,7 +335,9 @@ class StudyMateApp(BaseHTTPRequestHandler):
     def login_and_redirect(self, user_id: int, message: str) -> None:
         token = self.create_session(user_id)
         expires_at = utcnow() + timedelta(days=SESSION_DAYS)
-        params = urlencode({"flash": message, "category": "success"})
+        params = urlencode(
+            {"flash": message, "category": "success", "sig": sign_flash(message, "success")}
+        )
         self.send_response(HTTPStatus.SEE_OTHER)
         self.send_header("Location", f"/dashboard?{params}")
         self.set_session_cookie(token, expires_at)
@@ -326,13 +373,10 @@ class StudyMateApp(BaseHTTPRequestHandler):
         ip = self.client_address[0]
         now = time.time()
 
+        _prune_failed_logins(now)
         record = _failed_logins.get(ip)
-        if record and record["locked_until"]:
-            if now < record["locked_until"]:
-                raise ValidationError(
-                    "Too many failed attempts. Try again in 10 minutes.", "/login"
-                )
-            del _failed_logins[ip]
+        if record and record["locked_until"] and now < record["locked_until"]:
+            raise ValidationError("Too many failed attempts. Try again in 10 minutes.", "/login")
 
         school = self.form.get("school", "")
         email = compose_edu_email(school, self.form.get("email_local", ""), "/login")
@@ -343,7 +387,9 @@ class StudyMateApp(BaseHTTPRequestHandler):
 
         if not user or not verify_password(password, user["password_hash"]):
             time.sleep(0.25)  # blunt the difference between "no such user" and "wrong password"
-            attempt = _failed_logins.setdefault(ip, {"attempts": 0, "locked_until": 0})
+            attempt = _failed_logins.setdefault(
+                ip, {"attempts": 0, "locked_until": 0, "first_seen": now}
+            )
             attempt["attempts"] += 1
             if attempt["attempts"] >= MAX_FAILED_LOGINS:
                 attempt["locked_until"] = now + LOGIN_LOCKOUT_SECONDS
@@ -674,7 +720,10 @@ class StudyMateApp(BaseHTTPRequestHandler):
 
 def main() -> None:
     init_db()
-    seed_demo()
+    if SEED_DEMO:
+        seed_demo()
+    else:
+        print("Demo accounts not seeded (STUDYMATE_SEED_DEMO is off).")
     server = ThreadingHTTPServer((HOST, PORT), StudyMateApp)
     print(f"StudyMate running at http://{HOST}:{PORT}")
     server.serve_forever()
