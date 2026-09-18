@@ -23,8 +23,9 @@ from .config import PBKDF2_ITERATIONS, SECRET_PATH
 def get_secret() -> bytes:
     """Return the application secret, generating and persisting one if needed.
 
-    In production this should come from the environment. The generated file is a
-    development convenience so the app runs on a fresh clone with no setup.
+    Used to sign flash messages (see `sign_flash`). In production this should come
+    from the environment; the generated file is a development convenience so the
+    app runs on a fresh clone with no setup.
     """
     SECRET_PATH.parent.mkdir(parents=True, exist_ok=True)
     env_secret = os.environ.get("STUDYMATE_SECRET_KEY")
@@ -80,3 +81,21 @@ def token_hash(token: str) -> str:
     query on an exact value.
     """
     return hashlib.sha256(token.encode()).hexdigest()
+
+
+def sign_flash(message: str, category: str) -> str:
+    """Sign a flash message so it cannot be forged through the URL.
+
+    Flash text is carried in the query string across a redirect, which means
+    anything in the address bar would otherwise be rendered on our own page. An
+    attacker could send someone a link reading "Your account was suspended,
+    contact ..." — escaped, so not XSS, but a convincing phishing page on a
+    domain the reader already trusts. Only messages this server generated carry a
+    valid signature.
+    """
+    payload = f"{message}\x1f{category}".encode()
+    return hmac.new(SECRET_KEY, payload, hashlib.sha256).hexdigest()[:32]
+
+
+def verify_flash(message: str, category: str, signature: str) -> bool:
+    return hmac.compare_digest(signature, sign_flash(message, category))
