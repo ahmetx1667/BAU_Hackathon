@@ -107,7 +107,7 @@ function bindSubmitState() {
         return;
       }
       button.dataset.originalLabel = button.textContent;
-      button.textContent = "İşleniyor...";
+      button.textContent = "Working...";
       button.disabled = true;
     });
   });
